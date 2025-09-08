@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+*.cover
+.hypothesis/
+*.egg-info/
+dist/
+build/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.next/
+out/
+.turbo/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+*.log
+tmp/
+
+# Project specific
+/backend/venv/
+/backend/.env
+/frontend/.next/
+/frontend/node_modules/
+/deployment/logs/
+*.pyc
+*.pyo
+
+# Temporary files
+/tmp/
+*.tmp
+*.temp
+
+# Session data (should never be committed)
+session_data/
+uploads/
