@@ -63,3 +63,5 @@ tmp/
 # Session data (should never be committed)
 session_data/
 uploads/
+
+!backend/.env.example
