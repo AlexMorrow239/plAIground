@@ -1,7 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -21,7 +27,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [sessionTTLHours, setSessionTTLHours] = useState(72);
 
-  const checkAuth = (): boolean => {
+  const logout = useCallback(() => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("session_id");
+    localStorage.removeItem("expires_at");
+    localStorage.removeItem("session_ttl_hours");
+    setIsAuthenticated(false);
+    setSessionId(null);
+    setExpiresAt(null);
+    router.push("/login");
+  }, [router]);
+
+  const checkAuth = useCallback((): boolean => {
     const token = localStorage.getItem("access_token");
     const storedSessionId = localStorage.getItem("session_id");
     const storedExpiresAt = localStorage.getItem("expires_at");
@@ -46,18 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setExpiresAt(expiry);
     setSessionTTLHours(storedTTL ? parseInt(storedTTL) : 72);
     return true;
-  };
-
-  const logout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("session_id");
-    localStorage.removeItem("expires_at");
-    localStorage.removeItem("session_ttl_hours");
-    setIsAuthenticated(false);
-    setSessionId(null);
-    setExpiresAt(null);
-    router.push("/login");
-  };
+  }, [logout]);
 
   useEffect(() => {
     checkAuth();
@@ -70,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 60000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [checkAuth, router]);
 
   return (
     <AuthContext.Provider

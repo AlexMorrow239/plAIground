@@ -2,14 +2,7 @@
 
 import { useState } from "react";
 import { useDocuments, useUploadDocument, useDeleteDocument } from "@/lib/hooks";
-
-interface Document {
-  document_id: string;
-  filename: string;
-  size_mb: number;
-  upload_time: string;
-  file_type: string;
-}
+import type { Document } from "@/types"
 
 export default function DocumentsPage() {
   const [dragActive, setDragActive] = useState(false);
@@ -184,7 +177,7 @@ export default function DocumentsPage() {
         ) : (
           <div className="bg-white shadow overflow-hidden sm:rounded-md">
             <ul className="divide-y divide-gray-200">
-              {documents.map((doc) => (
+              {documents.map((doc: Document) => (
                 <li key={doc.document_id} className="px-6 py-4 hover:bg-gray-50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">

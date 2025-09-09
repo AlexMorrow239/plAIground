@@ -2,18 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useChatHistory, useSendMessage, useClearConversation } from "@/lib/hooks";
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  timestamp: string;
-}
-
-interface Conversation {
-  conversation_id: string;
-  messages: Message[];
-  created_at: string;
-}
+import type { Message, Conversation } from "@/types"
 
 export default function ChatPage() {
   const [message, setMessage] = useState("");
@@ -46,7 +35,7 @@ export default function ChatPage() {
     setMessage("");
 
     sendMessageMutation.mutate(
-      { message: userMessage, conversationId: currentConversationId },
+      { message: userMessage, conversationId: currentConversationId || undefined },
       {
         onSuccess: (data) => {
           setCurrentConversationId(data.conversation_id);
@@ -72,7 +61,7 @@ export default function ChatPage() {
     });
   };
 
-  const currentConversation = conversations.find(c => c.conversation_id === currentConversationId);
+  const currentConversation = conversations.find((c: Conversation) => c.conversation_id === currentConversationId);
   const messages = currentConversation?.messages || [];
 
   return (
@@ -91,7 +80,7 @@ export default function ChatPage() {
           {isLoading ? (
             <div className="p-2 text-sm text-gray-500">Loading conversations...</div>
           ) : (
-            conversations.map((conv) => (
+            conversations.map((conv: Conversation) => (
             <div
               key={conv.conversation_id}
               className={`p-2 rounded cursor-pointer hover:bg-gray-100 ${
@@ -101,7 +90,10 @@ export default function ChatPage() {
             >
               <div className="flex justify-between items-center">
                 <div className="text-sm text-gray-700 truncate flex-1">
-                  {conv.messages[0]?.content.substring(0, 30) || "Empty conversation"}...
+                  {conv.messages && conv.messages.length > 0 
+                    ? `${conv.messages[0].content.substring(0, 30)}...`
+                    : "Empty conversation"
+                  }
                 </div>
                 <button
                   onClick={(e) => {
@@ -149,7 +141,7 @@ export default function ChatPage() {
               </p>
             </div>
           ) : (
-            messages.map((msg, index) => (
+            messages.map((msg: Message, index: number) => (
               <div
                 key={index}
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
