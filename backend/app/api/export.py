@@ -22,30 +22,30 @@ class ExportData(BaseModel):
 @router.get("/all", response_model=ExportData)
 async def export_all_data(token_data: Dict[str, Any] = Depends(verify_token)) -> ExportData:
     """Export all session data as JSON"""
-    
+
     session_id = token_data.get("session_id")
     username = token_data.get("sub")
-    
+
     if not session_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid session"
         )
-    
+
     session_data = session_manager.get_session(session_id)
     if not session_data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Session not found"
         )
-    
+
     # Calculate session duration
     time_remaining = session_manager.get_session_time_remaining(session_id)
     if time_remaining:
         hours_used = settings.SESSION_TTL_HOURS - (time_remaining.total_seconds() / 3600)
     else:
         hours_used = settings.SESSION_TTL_HOURS
-    
+
     # Prepare export data
     export_data = {
         "session_info": {
@@ -69,23 +69,23 @@ async def export_all_data(token_data: Dict[str, Any] = Depends(verify_token)) ->
         "export_timestamp": datetime.utcnow().isoformat(),
         "session_duration_hours": round(hours_used, 2)
     }
-    
+
     return ExportData(**export_data)
 
 
 @router.get("/download")
 async def download_export(token_data: Dict[str, Any] = Depends(verify_token)):
     """Download all session data as a JSON file"""
-    
+
     # Get export data
     export_data = await export_all_data(token_data)
-    
+
     # Convert to JSON string
-    json_content = json.dumps(export_data.dict(), indent=2, default=str)
-    
+    _json_content = json.dumps(export_data.dict(), indent=2, default=str)
+
     # Create filename with timestamp
     filename = f"legal_ai_sandbox_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
-    
+
     # Return as downloadable file
     return JSONResponse(
         content=export_data.dict(),
