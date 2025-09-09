@@ -5,8 +5,10 @@ description = "Legal AI Research Sandbox Backend - Secure ephemeral environment 
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.116.1",
-    "jose>=1.0.0",
+    "httpx>=0.28.1",
+    "passlib>=1.7.4",
     "pydantic-settings>=2.10.1",
+    "python-jose>=3.5.0",
 ]
 
 [project.optional-dependencies]
@@ -15,3 +17,37 @@ dev = []
 [tool.uv]
 # Ensure uv uses the venv in the project directory
 managed = true
+
+[tool.pyright]
+include = ["app"]
+exclude = ["**/__pycache__", ".venv"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+reportMissingImports = "warning"
+autoImportCompletions = true
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["app"]
