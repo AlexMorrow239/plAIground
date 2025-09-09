@@ -23,7 +23,7 @@ export function useDocuments() {
   return useQuery({
     queryKey: ["documents"],
     queryFn: ApiClient.getDocuments,
-    enabled: !!localStorage.getItem("access_token"),
+    enabled: typeof window !== "undefined" && !!localStorage.getItem("access_token"),
   });
 }
 
@@ -54,7 +54,7 @@ export function useChatHistory() {
   return useQuery({
     queryKey: ["chat-history"],
     queryFn: ApiClient.getChatHistory,
-    enabled: !!localStorage.getItem("access_token"),
+    enabled: typeof window !== "undefined" && !!localStorage.getItem("access_token"),
   });
 }
 
@@ -103,7 +103,7 @@ export function useSessionStatus() {
   return useQuery({
     queryKey: ["session-status"],
     queryFn: ApiClient.getSessionStatus,
-    enabled: !!localStorage.getItem("access_token"),
+    enabled: typeof window !== "undefined" && !!localStorage.getItem("access_token"),
     refetchInterval: 60000, // Refetch every minute
   });
 }
