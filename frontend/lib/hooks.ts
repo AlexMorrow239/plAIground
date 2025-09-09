@@ -9,7 +9,11 @@ export function useLogin() {
     onSuccess: (data) => {
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("session_id", data.session_id);
-      localStorage.setItem("expires_at", data.expires_at);
+      
+      // Calculate expires_at timestamp from expires_in (seconds)
+      const expiresAt = new Date(Date.now() + data.expires_in * 1000);
+      localStorage.setItem("expires_at", expiresAt.toISOString());
+      localStorage.setItem("session_ttl_hours", data.session_ttl_hours);
     },
   });
 }

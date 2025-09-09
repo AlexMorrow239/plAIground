@@ -2,15 +2,32 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from typing import Dict, Any
+import asyncio
 
-from core.config import settings
-from api import auth, documents, chat, export
+from app.core.config import settings
+from app.core.security import session_manager
+from app.api import auth, documents, chat, export
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print(f"Starting Legal AI Sandbox - Session TTL: {settings.SESSION_TTL_HOURS} hours")
+
+    # Load pre-provisioned sessions from file
+    session_manager.load_sessions_from_file()
+
+    # Start background task for session cleanup
+    async def cleanup_task():
+        while True:
+            await asyncio.sleep(300)  # Check every 5 minutes
+            session_manager.cleanup_expired_sessions()
+
+    cleanup_task_handle = asyncio.create_task(cleanup_task())
+
     yield
+
+    # Cancel cleanup task
+    cleanup_task_handle.cancel()
     print("Shutting down Legal AI Sandbox - Cleaning up resources")
 
 
@@ -25,8 +42,15 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+    ],
 )
 
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])

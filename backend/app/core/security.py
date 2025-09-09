@@ -1,13 +1,15 @@
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from jose import JWTError, jwt
 import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import secrets
 import string
+import json
+from pathlib import Path
 
-from core.config import settings
+from app.core.config import settings
 
 security = HTTPBearer()
 
@@ -78,6 +80,7 @@ class SessionManager:
     def __init__(self):
         self.sessions: Dict[str, Dict[str, Any]] = {}
         self.session_start_times: Dict[str, datetime] = {}
+        self.sessions_file = Path("sessions.json")
 
     def create_session(self, username: str, password_hash: str) -> str:
         """Create a new session"""
@@ -132,6 +135,68 @@ class SessionManager:
 
         for session_id in expired_sessions:
             self.delete_session(session_id)
+            print(f"Cleaned up expired session: {session_id}")
+
+    def load_sessions_from_file(self) -> None:
+        """Load pre-provisioned sessions from JSON file"""
+        if not self.sessions_file.exists():
+            print(f"No sessions file found at {self.sessions_file}")
+            return
+
+        try:
+            with open(self.sessions_file, 'r') as f:
+                data = json.load(f)
+
+            if 'sessions' not in data:
+                print("Invalid sessions file format")
+                return
+
+            loaded_count = 0
+            for session_data in data['sessions']:
+                session_id = session_data.get('session_id')
+                if not session_id:
+                    continue
+
+                # Parse timestamps
+                created_at = datetime.fromisoformat(session_data['created_at'])
+                expires_at = datetime.fromisoformat(session_data['expires_at'])
+
+                # Check if session is still valid
+                if expires_at < datetime.utcnow():
+                    print(f"Skipping expired session for {session_data.get('username')}")
+                    continue
+
+                # Load session into memory
+                self.sessions[session_id] = {
+                    "username": session_data['username'],
+                    "password_hash": session_data['password_hash'],
+                    "created_at": created_at,
+                    "expires_at": expires_at,
+                    "documents": session_data.get('documents', []),
+                    "conversations": session_data.get('conversations', []),
+                    "active": session_data.get('active', True)
+                }
+                self.session_start_times[session_id] = created_at
+                loaded_count += 1
+
+            print(f"Loaded {loaded_count} valid session(s) from {self.sessions_file}")
+
+        except Exception as e:
+            print(f"Error loading sessions from file: {e}")
+
+    def get_all_sessions(self) -> List[Dict[str, Any]]:
+        """Get all active sessions (for admin monitoring)"""
+        sessions_list = []
+        for session_id, session_data in self.sessions.items():
+            remaining = self.get_session_time_remaining(session_id)
+            sessions_list.append({
+                "session_id": session_id,
+                "username": session_data.get("username"),
+                "active": session_data.get("active", True),
+                "created_at": session_data.get("created_at"),
+                "time_remaining_hours": remaining.total_seconds() / 3600 if remaining else 0
+            })
+        return sessions_list
 
 
 session_manager = SessionManager()

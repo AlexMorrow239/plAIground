@@ -4,8 +4,8 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import httpx
 
-from core.config import settings
-from core.security import verify_token, session_manager
+from app.core.config import settings
+from app.core.security import verify_token, session_manager
 
 router = APIRouter()
 

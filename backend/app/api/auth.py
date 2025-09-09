@@ -3,8 +3,8 @@ from pydantic import BaseModel
 from datetime import timedelta
 from typing import Dict, Any
 
-from core.config import settings
-from core.security import (
+from app.core.config import settings
+from app.core.security import (
     verify_password,
     create_access_token,
     verify_token,
@@ -24,6 +24,7 @@ class LoginResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     session_ttl_hours: int
+    session_id: str
 
 
 class SessionInfo(BaseModel):
@@ -39,9 +40,11 @@ async def login(credentials: LoginRequest) -> LoginResponse:
     Manual login with provided credentials.
     Credentials are provisioned by admin and sent via secure channel.
     """
+    print(f"Login attempt for user: {credentials.username}")
+    print(f"Active sessions: {list(session_manager.sessions.keys())}")
     # Check if user exists in active sessions
     session_data = None
-    session_id = None
+    session_id = ""
 
     for sid, data in session_manager.sessions.items():
         if data["username"] == credentials.username:
@@ -49,7 +52,7 @@ async def login(credentials: LoginRequest) -> LoginResponse:
             session_id = sid
             break
 
-    if not session_data:
+    if not session_data or not session_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials. Please use the credentials provided by your administrator.",
@@ -74,7 +77,8 @@ async def login(credentials: LoginRequest) -> LoginResponse:
     return LoginResponse(
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # Convert to seconds
-        session_ttl_hours=settings.SESSION_TTL_HOURS
+        session_ttl_hours=settings.SESSION_TTL_HOURS,
+        session_id=session_id
     )
 
 

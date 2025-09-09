@@ -5,8 +5,8 @@ import os
 from datetime import datetime
 import hashlib
 
-from core.config import settings
-from core.security import verify_token, session_manager
+from app.core.config import settings
+from app.core.security import verify_token, session_manager
 
 router = APIRouter()
 
