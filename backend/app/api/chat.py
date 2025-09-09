@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import httpx
 
 from app.core.config import settings
@@ -67,9 +67,9 @@ async def send_message(
     if not conversation:
         # Create new conversation
         conversation = {
-            "id": f"conv_{datetime.utcnow().timestamp()}",
+            "id": f"conv_{datetime.now(timezone.utc).timestamp()}",
             "messages": [],
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat()
         }
         conversations.append(conversation)
         session_data["conversations"] = conversations
@@ -78,7 +78,7 @@ async def send_message(
     user_message = {
         "role": "user",
         "content": request.message,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
     conversation["messages"].append(user_message)
 
@@ -126,7 +126,7 @@ async def send_message(
     assistant_message = {
         "role": "assistant",
         "content": assistant_response,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
     conversation["messages"].append(assistant_message)
 

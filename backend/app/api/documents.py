@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 
 from app.core.config import settings
@@ -54,7 +54,7 @@ async def upload_document(
         )
 
     # Generate document ID
-    doc_id = hashlib.md5(f"{file.filename}{datetime.utcnow()}".encode()).hexdigest()
+    doc_id = hashlib.md5(f"{file.filename}{datetime.now(timezone.utc)}".encode()).hexdigest()
 
     # Create upload directory if it doesn't exist (in tmpfs)
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
@@ -74,7 +74,7 @@ async def upload_document(
                 "filename": file.filename,
                 "path": file_path,
                 "size_bytes": file_size,
-                "upload_time": datetime.utcnow().isoformat(),
+                "upload_time": datetime.now(timezone.utc).isoformat(),
                 "file_type": file_extension
             }
             session_data["documents"].append(document_info)
@@ -83,7 +83,7 @@ async def upload_document(
         filename=file.filename,
         size_bytes=file_size,
         size_mb=round(file_size / (1024 * 1024), 2),
-        upload_time=datetime.utcnow().isoformat(),
+        upload_time=datetime.now(timezone.utc).isoformat(),
         file_type=file_extension,
         document_id=doc_id
     )

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 from jose import JWTError, jwt
 import bcrypt
@@ -43,9 +43,9 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     """Create JWT access token"""
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
@@ -88,12 +88,12 @@ class SessionManager:
         self.sessions[session_id] = {
             "username": username,
             "password_hash": password_hash,
-            "created_at": datetime.utcnow(),
+            "created_at": datetime.now(timezone.utc),
             "documents": [],
             "conversations": [],
             "active": True
         }
-        self.session_start_times[session_id] = datetime.utcnow()
+        self.session_start_times[session_id] = datetime.now(timezone.utc)
         return session_id
 
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
@@ -118,7 +118,7 @@ class SessionManager:
             return None
 
         start_time = self.session_start_times[session_id]
-        elapsed = datetime.utcnow() - start_time
+        elapsed = datetime.now(timezone.utc) - start_time
         total_allowed = timedelta(hours=settings.SESSION_TTL_HOURS)
         remaining = total_allowed - elapsed
 
@@ -126,7 +126,7 @@ class SessionManager:
 
     def cleanup_expired_sessions(self) -> None:
         """Remove expired sessions"""
-        current_time = datetime.utcnow()
+        current_time = datetime.now(timezone.utc)
         expired_sessions = []
 
         for session_id, start_time in self.session_start_times.items():
@@ -162,7 +162,7 @@ class SessionManager:
                 expires_at = datetime.fromisoformat(session_data['expires_at'])
 
                 # Check if session is still valid
-                if expires_at < datetime.utcnow():
+                if expires_at < datetime.now(timezone.utc):
                     print(f"Skipping expired session for {session_data.get('username')}")
                     continue
 

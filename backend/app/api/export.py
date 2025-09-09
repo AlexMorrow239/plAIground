@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
 from app.core.config import settings
@@ -66,7 +66,7 @@ async def export_all_data(token_data: Dict[str, Any] = Depends(verify_token)) ->
             for doc in session_data.get("documents", [])
         ],
         "conversations": session_data.get("conversations", []),
-        "export_timestamp": datetime.utcnow().isoformat(),
+        "export_timestamp": datetime.now(timezone.utc).isoformat(),
         "session_duration_hours": round(hours_used, 2)
     }
 
@@ -84,7 +84,7 @@ async def download_export(token_data: Dict[str, Any] = Depends(verify_token)):
     _json_content = json.dumps(export_data.dict(), indent=2, default=str)
 
     # Create filename with timestamp
-    filename = f"legal_ai_sandbox_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+    filename = f"legal_ai_sandbox_export_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
 
     # Return as downloadable file
     return JSONResponse(
