@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { getApiUrl } from './env';
 
 export class ApiClient {
   private static getHeaders(includeAuth: boolean = true): HeadersInit {
@@ -17,7 +17,7 @@ export class ApiClient {
   }
 
   static async login(username: string, password: string) {
-    const response = await fetch(`${API_URL}/api/auth/login`, {
+    const response = await fetch(getApiUrl('/api/auth/login'), {
       method: "POST",
       headers: this.getHeaders(false),
       body: JSON.stringify({ username, password }),
@@ -32,7 +32,7 @@ export class ApiClient {
   }
 
   static async getDocuments() {
-    const response = await fetch(`${API_URL}/api/documents/list`, {
+    const response = await fetch(getApiUrl('/api/documents/list'), {
       headers: this.getHeaders(),
     });
 
@@ -48,7 +48,7 @@ export class ApiClient {
     formData.append("file", file);
 
     const token = localStorage.getItem("access_token");
-    const response = await fetch(`${API_URL}/api/documents/upload`, {
+    const response = await fetch(getApiUrl('/api/documents/upload'), {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -65,7 +65,7 @@ export class ApiClient {
   }
 
   static async deleteDocument(documentId: string) {
-    const response = await fetch(`${API_URL}/api/documents/${documentId}`, {
+    const response = await fetch(getApiUrl(`/api/documents/${documentId}`), {
       method: "DELETE",
       headers: this.getHeaders(),
     });
@@ -78,7 +78,7 @@ export class ApiClient {
   }
 
   static async sendChatMessage(message: string, conversationId?: string) {
-    const response = await fetch(`${API_URL}/api/chat/send`, {
+    const response = await fetch(getApiUrl('/api/chat/send'), {
       method: "POST",
       headers: this.getHeaders(),
       body: JSON.stringify({
@@ -96,7 +96,7 @@ export class ApiClient {
   }
 
   static async getChatHistory() {
-    const response = await fetch(`${API_URL}/api/chat/history`, {
+    const response = await fetch(getApiUrl('/api/chat/history'), {
       headers: this.getHeaders(),
     });
 
@@ -108,7 +108,7 @@ export class ApiClient {
   }
 
   static async clearConversation(conversationId: string) {
-    const response = await fetch(`${API_URL}/api/chat/history/${conversationId}`, {
+    const response = await fetch(getApiUrl(`/api/chat/history/${conversationId}`), {
       method: "DELETE",
       headers: this.getHeaders(),
     });
@@ -121,7 +121,7 @@ export class ApiClient {
   }
 
   static async exportAllData() {
-    const response = await fetch(`${API_URL}/api/export/all`, {
+    const response = await fetch(getApiUrl('/api/export/all'), {
       headers: this.getHeaders(),
     });
 
@@ -133,7 +133,7 @@ export class ApiClient {
   }
 
   static async getSessionStatus() {
-    const response = await fetch(`${API_URL}/api/auth/session`, {
+    const response = await fetch(getApiUrl('/api/auth/session'), {
       headers: this.getHeaders(),
     });
 

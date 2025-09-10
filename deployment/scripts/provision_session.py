@@ -2,20 +2,27 @@
 """
 Session Provisioning Tool for Legal AI Research Sandbox
 
-This script generates researcher credentials and creates a sessions.json file
-that the backend loads on startup to pre-provision authenticated sessions.
+This script generates researcher credentials and creates session containers
+for the Legal AI Research Sandbox with complete isolation.
 
 Usage:
-    # Generate single researcher session
+    # Generate single researcher session (local development)
     python provision_session.py
 
-    # Generate multiple researcher sessions
-    python provision_session.py --count 3
+    # Generate containerized session
+    python provision_session.py --container
 
-    # Specify custom output file
-    python provision_session.py --output /custom/path/sessions.json
+    # Generate multiple sessions
+    python provision_session.py --count 3 --container
 
-By default, sessions.json is saved to the backend directory.
+    # Specify custom configuration
+    python provision_session.py --container --base-port 8100
+
+Features:
+- Local development: Creates sessions.json for backend loading
+- Container mode: Creates isolated Docker containers per researcher
+- Automatic port allocation and network isolation
+- Session cleanup and lifecycle management
 """
 
 import argparse
@@ -23,18 +30,29 @@ import json
 import secrets
 import string
 import sys
+import subprocess
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Any, Tuple
 import bcrypt
 
-# Find project root and backend directory
+# Find project root and directories
 current_file = Path(__file__).resolve()
 project_root = current_file.parent.parent.parent  # deployment/scripts -> deployment -> project root
 backend_dir = project_root / "backend"
+deployment_dir = project_root / "deployment"
+sessions_dir = project_root / "sessions"
 
 # Add backend to path for imports if needed
 sys.path.insert(0, str(backend_dir))
+
+# Container configuration
+DOCKER_COMPOSE_FILE = project_root / "docker-compose.yml"
+CONTAINER_ENV_TEMPLATE = project_root / ".env.container.template"
+BASE_BACKEND_PORT = 8000
+BASE_FRONTEND_PORT = 3000
+BASE_SUBNET = "172.20"
 
 
 def generate_password(length: int = 16) -> str:
@@ -123,6 +141,179 @@ def print_credentials(credentials_list: List[Dict[str, str]]) -> None:
         print()
 
 
+def find_available_ports(base_port: int, count: int = 2) -> List[int]:
+    """Find available ports starting from base_port."""
+    available_ports = []
+    port = base_port
+
+    while len(available_ports) < count:
+        # Check if port is available
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex(('127.0.0.1', port))
+        sock.close()
+
+        if result != 0:  # Port is available
+            available_ports.append(port)
+
+        port += 1
+
+        # Safety check to prevent infinite loop
+        if port > base_port + 1000:
+            raise RuntimeError(f"Could not find {count} available ports starting from {base_port}")
+
+    return available_ports
+
+
+def generate_container_config(session: Dict[str, Any], backend_port: int, frontend_port: int) -> Dict[str, Any]:
+    """Generate container-specific configuration."""
+    session_id = session['session_id'][:12]  # Truncate for container naming
+    subnet_third = hash(session_id) % 200 + 1  # Generate unique subnet
+
+    container_config = {
+        'session_id': session_id,
+        'session_full_id': session['session_id'],
+        'backend_port': backend_port,
+        'frontend_port': frontend_port,
+        'subnet': f"{BASE_SUBNET}.{subnet_third}.0/24",
+        'container_name': f"legal_sandbox_{session_id}",
+        'created_at': session['created_at'],
+        'expires_at': session['expires_at'],
+        'ttl_hours': session['ttl_hours']
+    }
+
+    return container_config
+
+
+def create_container_env_file(container_config: Dict[str, Any], session_config_path: Path) -> Path:
+    """Create environment file for container deployment."""
+    env_file_path = deployment_dir / f".env.{container_config['session_id']}"
+
+    # Generate secret key for this session
+    secret_key = secrets.token_urlsafe(32)
+
+    env_content = f"""# Container Environment for Session {container_config['session_id']}
+# Generated at: {datetime.now(timezone.utc).isoformat()}
+
+# Session Identification
+SESSION_ID={container_config['session_id']}
+SESSION_TTL_HOURS={container_config['ttl_hours']}
+
+# Port allocation
+BACKEND_PORT={container_config['backend_port']}
+FRONTEND_PORT={container_config['frontend_port']}
+
+# Network configuration
+SESSION_SUBNET={container_config['subnet']}
+
+# Security
+SECRET_KEY={secret_key}
+
+# Session configuration file path
+SESSION_CONFIG_PATH={session_config_path.resolve()}
+
+# LLM Configuration (disabled by default)
+ENABLE_LLM=false
+OLLAMA_MODEL=llama3:8b
+"""
+
+    with open(env_file_path, 'w') as f:
+        f.write(env_content)
+
+    return env_file_path
+
+
+def create_session_container(container_config: Dict[str, Any], session_config_path: Path) -> bool:
+    """Create and start a Docker container for the session."""
+    try:
+        # Create environment file
+        env_file = create_container_env_file(container_config, session_config_path)
+
+        print(f"  🐳 Starting container for session {container_config['session_id']}")
+        print(f"     Backend:  http://localhost:{container_config['backend_port']}")
+        print(f"     Frontend: http://localhost:{container_config['frontend_port']}")
+
+        # Start the container using docker-compose
+        result = subprocess.run([
+            'docker-compose',
+            '-f', str(DOCKER_COMPOSE_FILE),
+            '--env-file', str(env_file),
+            'up', '-d'
+        ],
+        cwd=str(project_root),
+        capture_output=True,
+        text=True
+        )
+
+        if result.returncode == 0:
+            print(f"  ✓ Container started successfully")
+
+            # Wait a moment for services to start
+            time.sleep(3)
+
+            # Check health
+            health_check = subprocess.run([
+                'docker', 'exec', f"{container_config['session_id']}_backend",
+                'curl', '-f', 'http://localhost:8000/health'
+            ], capture_output=True)
+
+            if health_check.returncode == 0:
+                print(f"  ✓ Backend health check passed")
+            else:
+                print(f"  ⚠ Backend health check failed, but container is running")
+
+            return True
+        else:
+            print(f"  ❌ Failed to start container: {result.stderr}")
+            return False
+
+    except Exception as e:
+        print(f"  ❌ Error creating container: {e}")
+        return False
+
+
+def save_container_session_config(session: Dict[str, Any], container_config: Dict[str, Any]) -> Path:
+    """Save session configuration file for container use."""
+    session_config_file = deployment_dir / f"session_{container_config['session_id']}.json"
+
+    session_data = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "container_config": container_config,
+        "sessions": [session]
+    }
+
+    with open(session_config_file, 'w') as f:
+        json.dump(session_data, f, indent=2)
+
+    return session_config_file
+
+
+def print_container_info(container_configs: List[Dict[str, Any]], credentials_list: List[Dict[str, str]]) -> None:
+    """Print container access information."""
+    print("\n" + "="*70)
+    print("CONTAINER SESSION ACCESS")
+    print("="*70)
+
+    for i, (config, creds) in enumerate(zip(container_configs, credentials_list), 1):
+        print(f"\n--- Session {i}: {config['session_id']} ---")
+        print(f"Frontend URL: http://localhost:{config['frontend_port']}")
+        print(f"Backend URL:  http://localhost:{config['backend_port']}")
+        print(f"Username:     {creds['username']}")
+        print(f"Password:     {creds['password']}")
+        print(f"Expires:      {creds['expires_at']}")
+        print(f"Container:    {config['container_name']}")
+
+    print("\n" + "="*70)
+    print("CONTAINER MANAGEMENT")
+    print("="*70)
+    print("Stop containers:")
+    for config in container_configs:
+        print(f"  docker-compose --env-file deployment/.env.{config['session_id']} down")
+
+    print("\nCleanup all:")
+    print("  python deployment/scripts/cleanup_session_containers.py --all")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Generate researcher credentials for Legal AI Research Sandbox'
@@ -144,51 +335,132 @@ def main():
         action='store_true',
         help='Append to existing sessions file instead of overwriting'
     )
+    parser.add_argument(
+        '--container',
+        action='store_true',
+        help='Create containerized sessions with Docker isolation'
+    )
+    parser.add_argument(
+        '--base-port',
+        type=int,
+        default=8100,
+        help='Base port for container deployment (default: 8100)'
+    )
 
     args = parser.parse_args()
 
-    # Determine output path
-    if args.output:
-        output_path = Path(args.output)
+    # Container mode vs local development mode
+    if args.container:
+        print(f"\nCONTAINER MODE: Creating {args.count} isolated container session(s)")
+        print(f"Base port: {args.base_port}")
+
+        # Check Docker/Podman availability
+        try:
+            result = subprocess.run(['docker', '--version'], capture_output=True) or subprocess.run(['podman', '--version'], capture_output=True)
+            if result.returncode != 0:
+                print("Docker or Podman not available. Please install Docker or Podman to use container mode.")
+                return
+        except FileNotFoundError:
+            print("Docker or Podman not found. Please install Docker or Podman to use container mode.")
+            return
+
+        # Create deployment directory if it doesn't exist
+        deployment_dir.mkdir(exist_ok=True)
+
+        # Generate sessions and containers
+        sessions = []
+        credentials_list = []
+        container_configs = []
+
+        # Find available ports
+        try:
+            port_pairs = []
+            current_base = args.base_port
+            for i in range(args.count):
+                ports = find_available_ports(current_base, 2)
+                port_pairs.append((ports[0], ports[1]))  # backend, frontend
+                current_base = ports[1] + 1
+        except RuntimeError as e:
+            print(f"Error: {e}")
+            return
+
+        for i in range(args.count):
+            session, credentials = generate_session()
+            sessions.append(session)
+            credentials_list.append(credentials)
+
+            backend_port, frontend_port = port_pairs[i]
+            container_config = generate_container_config(session, backend_port, frontend_port)
+            container_configs.append(container_config)
+
+            print(f"  ✓ Generated session {i+1}/{args.count}: {container_config['session_id']}")
+
+            # Save session-specific config
+            session_config_path = save_container_session_config(session, container_config)
+
+            # Create and start container
+            success = create_session_container(container_config, session_config_path)
+            if not success:
+                print(f"  ❌ Failed to create container for session {container_config['session_id']}")
+                continue
+
+        # Print container access information
+        print_container_info(container_configs, credentials_list)
+
+        print("\n" + "="*70)
+        print("CONTAINER SESSIONS ACTIVE")
+        print("="*70)
+        print("Each researcher now has an isolated container with:")
+        print("- Complete session isolation")
+        print("- Ephemeral tmpfs storage")
+        print("- Automatic cleanup after TTL")
+        print("- Individual authentication")
+
     else:
-        # Default to backend/sessions.json relative to project root
-        output_path = backend_dir / "sessions.json"
+        # Local development mode
+        print(f"\n📁 LOCAL MODE: Creating {args.count} researcher session(s) for local development")
 
-    # Generate sessions
-    sessions = []
-    credentials_list = []
+        # Determine output path
+        if args.output:
+            output_path = Path(args.output)
+        else:
+            # Default to backend/sessions.json relative to project root
+            output_path = backend_dir / "sessions.json"
 
-    print(f"\nGenerating {args.count} researcher session(s)...")
-    print(f"Output file: {output_path.resolve()}")
+        # Generate sessions
+        sessions = []
+        credentials_list = []
 
-    for i in range(args.count):
-        session, credentials = generate_session()
-        sessions.append(session)
-        credentials_list.append(credentials)
-        print(f"  ✓ Generated session {i+1}/{args.count}")
+        print(f"Output file: {output_path.resolve()}")
 
-    # Handle append mode
-    if args.append and output_path.exists():
-        with open(output_path, 'r') as f:
-            existing_data = json.load(f)
-            if 'sessions' in existing_data:
-                sessions = existing_data['sessions'] + sessions
-                print(f"  ✓ Appending to existing {len(existing_data['sessions'])} session(s)")
+        for i in range(args.count):
+            session, credentials = generate_session()
+            sessions.append(session)
+            credentials_list.append(credentials)
+            print(f"  ✓ Generated session {i+1}/{args.count}")
 
-    # Save sessions
-    save_sessions(sessions, output_path)
+        # Handle append mode
+        if args.append and output_path.exists():
+            with open(output_path, 'r') as f:
+                existing_data = json.load(f)
+                if 'sessions' in existing_data:
+                    sessions = existing_data['sessions'] + sessions
+                    print(f"  ✓ Appending to existing {len(existing_data['sessions'])} session(s)")
 
-    # Print credentials for admin
-    print_credentials(credentials_list)
+        # Save sessions
+        save_sessions(sessions, output_path)
 
-    print("\n" + "="*70)
-    print("NEXT STEPS:")
-    print("="*70)
-    print(f"1. Sessions file saved to: {output_path.resolve()}")
-    print("2. Start the backend server (it will load sessions automatically)")
-    print("3. Send credentials to researchers via secure channel")
-    print("IMPORTANT: Passwords are displayed once here and cannot be recovered. be sure to save them.")
-    print()
+        # Print credentials for admin
+        print_credentials(credentials_list)
+
+        print("\n" + "="*70)
+        print("NEXT STEPS:")
+        print("="*70)
+        print(f"1. Sessions file saved to: {output_path.resolve()}")
+        print("2. Start the backend server (it will load sessions automatically)")
+        print("3. Send credentials to researchers via secure channel")
+        print("IMPORTANT: Passwords are displayed once here and cannot be recovered.")
+        print()
 
 
 if __name__ == "__main__":

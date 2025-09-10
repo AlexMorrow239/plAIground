@@ -1,0 +1,163 @@
+# Legal AI Research Sandbox - Base Configuration  
+# This is the template for per-session container deployment
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ${SESSION_ID:-sandbox}_backend
+    hostname: backend
+    environment:
+      # Session configuration
+      - SESSION_ID=${SESSION_ID:-default}
+      - SESSION_TTL_HOURS=${SESSION_TTL_HOURS:-72}
+      - SECRET_KEY=${SECRET_KEY}
+      
+      # API Configuration
+      - ALLOWED_ORIGINS=http://localhost:${FRONTEND_PORT:-3000},http://127.0.0.1:${FRONTEND_PORT:-3000}
+      
+      # Storage paths (tmpfs mounted)
+      - UPLOAD_DIR=/tmp/sandbox/uploads
+      - DOCUMENTS_DIR=/tmp/sandbox/documents
+      - SESSIONS_DIR=/tmp/sandbox/sessions
+      
+      # LLM Configuration (for future integration)
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - DEFAULT_MODEL=llama3:8b
+    
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    
+    # Security constraints
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:unconfined
+    
+    # Resource limits - 32GB RAM, 4 CPU cores max
+    deploy:
+      resources:
+        limits:
+          memory: 32G
+          cpus: '4.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    
+    # Ephemeral tmpfs storage - no persistent data
+    tmpfs:
+      - /tmp/sandbox:size=10G,noexec,nosuid,uid=1000,gid=1000
+      - /tmp:size=1G,noexec,nosuid
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Network isolation
+    networks:
+      - session_network
+    
+    # Session-specific volumes for configuration
+    volumes:
+      - ${SESSION_CONFIG_PATH:-./backend/sessions.json}:/app/sessions.json:ro
+    
+    # Automatic restart policy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ${SESSION_ID:-sandbox}_frontend
+    hostname: frontend
+    environment:
+      # API endpoint configuration
+      - NEXT_PUBLIC_API_URL=http://localhost:${BACKEND_PORT:-8000}
+      - NEXT_PUBLIC_SESSION_ID=${SESSION_ID:-default}
+    
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    
+    # Security constraints
+    security_opt:
+      - no-new-privileges:true
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 256M
+          cpus: '0.2'
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Network isolation
+    networks:
+      - session_network
+    
+    # Depends on backend
+    depends_on:
+      backend:
+        condition: service_healthy
+    
+    # Automatic restart policy
+    restart: unless-stopped
+
+  # Ollama service for LLM capabilities (for future phases)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ${SESSION_ID:-sandbox}_ollama
+    hostname: ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    
+    # Note: In production, this would be pre-pulled and cached
+    volumes:
+      - ollama_models:/root/.ollama
+    
+    # Resource limits for LLM
+    deploy:
+      resources:
+        limits:
+          memory: 16G
+          cpus: '4.0'
+        reservations:
+          memory: 4G
+          cpus: '1.0'
+    
+    # Network isolation
+    networks:
+      - session_network
+    
+    # Only start if needed
+    profiles:
+      - llm-enabled
+    
+    restart: unless-stopped
+
+# Session-specific network for complete isolation
+networks:
+  session_network:
+    driver: bridge
+    name: ${SESSION_ID:-sandbox}_network
+    ipam:
+      config:
+        - subnet: ${SESSION_SUBNET:-172.20.0.0/24}
+
+# Named volumes (only for ollama models)
+volumes:
+  ollama_models:
+    name: ${SESSION_ID:-sandbox}_models

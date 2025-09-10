@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings
-from typing import List
+from typing import List, Optional
 import os
 
 
@@ -7,31 +7,86 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Legal AI Research Sandbox"
     VERSION: str = "1.0.0"
 
+    # Container Configuration
+    SESSION_ID: Optional[str] = os.getenv("SESSION_ID")
+    IS_CONTAINERIZED: bool = os.getenv("SESSION_ID") is not None
+
     # Security
     SECRET_KEY: str = os.getenv("SECRET_KEY", "change-this-in-production-use-secrets-module")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 72  # 72 hours to match session TTL
 
-    # Session Management
-    SESSION_TTL_HOURS: int = 72
+    # Session Management  
+    SESSION_TTL_HOURS: int = int(os.getenv("SESSION_TTL_HOURS", "72"))
     SESSION_WARNING_MINUTES: List[int] = [60, 15, 5]  # Warning times before expiration
 
-    # CORS
-    ALLOWED_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://localhost:8000",
-    ]
+    # CORS - Dynamic based on environment
+    @property
+    def ALLOWED_ORIGINS(self) -> List[str]:
+        """Dynamic CORS origins based on environment."""
+        origins = [
+            "http://localhost:3000",
+            "http://localhost:8000",
+        ]
+        
+        # Add container-specific origins if running in container
+        if self.IS_CONTAINERIZED:
+            frontend_port = os.getenv("FRONTEND_PORT", "3000")
+            backend_port = os.getenv("BACKEND_PORT", "8000")
+            
+            container_origins = [
+                f"http://localhost:{frontend_port}",
+                f"http://127.0.0.1:{frontend_port}",
+                f"http://localhost:{backend_port}",
+                f"http://127.0.0.1:{backend_port}",
+            ]
+            origins.extend(container_origins)
+        
+        # Remove duplicates while preserving order
+        return list(dict.fromkeys(origins))
 
-    # File Upload
+    # File Upload - Container-aware paths
     MAX_FILE_SIZE_MB: int = 100
     ALLOWED_FILE_TYPES: List[str] = [".pdf", ".txt", ".docx"]
-    UPLOAD_DIR: str = "/tmp/sandbox/uploads"  # tmpfs mount point
+    
+    @property
+    def UPLOAD_DIR(self) -> str:
+        """Dynamic upload directory based on environment."""
+        base_dir = os.getenv("UPLOAD_DIR", "/tmp/sandbox/uploads")
+        
+        # Ensure directory exists in container
+        if self.IS_CONTAINERIZED:
+            os.makedirs(base_dir, exist_ok=True)
+            
+        return base_dir
+    
+    @property 
+    def DOCUMENTS_DIR(self) -> str:
+        """Dynamic documents directory based on environment."""
+        base_dir = os.getenv("DOCUMENTS_DIR", "/tmp/sandbox/documents")
+        
+        # Ensure directory exists in container
+        if self.IS_CONTAINERIZED:
+            os.makedirs(base_dir, exist_ok=True)
+            
+        return base_dir
+    
+    @property
+    def SESSIONS_DIR(self) -> str:
+        """Dynamic sessions directory based on environment."""
+        base_dir = os.getenv("SESSIONS_DIR", "/tmp/sandbox/sessions")
+        
+        # Ensure directory exists in container
+        if self.IS_CONTAINERIZED:
+            os.makedirs(base_dir, exist_ok=True)
+            
+        return base_dir
 
     # LLM Configuration
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    DEFAULT_MODEL: str = "llama3:8b"
-    MAX_TOKENS: int = 4096
-    TEMPERATURE: float = 0.7
+    DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "llama3:8b")
+    MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "4096"))
+    TEMPERATURE: float = float(os.getenv("TEMPERATURE", "0.7"))
 
     # Database (in-memory only for MVP)
     USE_IN_MEMORY_STORAGE: bool = True
@@ -39,6 +94,10 @@ class Settings(BaseSettings):
     # Admin Credentials (for manual provisioning)
     ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD_HASH: str = os.getenv("ADMIN_PASSWORD_HASH", "")
+
+    # Container Resource Limits
+    MAX_MEMORY_GB: int = int(os.getenv("MAX_MEMORY", "32"))
+    MAX_TMPFS_GB: int = int(os.getenv("MAX_TMPFS", "10"))
 
     class Config:
         env_file = ".env"

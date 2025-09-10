@@ -68,3 +68,5 @@ backend/sessions.json
 deployment/sessions.json
 
 !backend/.env.example
+
+deployment/session_*.json
