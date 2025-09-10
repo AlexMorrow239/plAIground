@@ -1,5 +1,5 @@
 {
-  "include": ["backend"],
+  "include": ["backend", "deployment/scripts"],
   "exclude": ["**/__pycache__", "**/.venv", "**/node_modules", "frontend"],
   "venvPath": "backend",
   "venv": ".venv",
@@ -10,7 +10,7 @@
       "root": "backend",
       "pythonVersion": "3.12",
       "pythonPlatform": "Darwin",
-      "extraPaths": ["backend", "backend/app"]
+      "extraPaths": ["backend", "backend/app", "deployment/scripts"]
     }
   ],
   "typeCheckingMode": "basic",

@@ -34,7 +34,7 @@ import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any, Optional
 
 # Find project root and directories
 current_file = Path(__file__).resolve()
