@@ -49,9 +49,6 @@ sys.path.insert(0, str(backend_dir))
 
 # Container configuration
 DOCKER_COMPOSE_FILE = project_root / "docker-compose.yml"
-CONTAINER_ENV_TEMPLATE = project_root / ".env.container.template"
-BASE_BACKEND_PORT = 8000
-BASE_FRONTEND_PORT = 3000
 BASE_SUBNET = "172.20"
 
 
