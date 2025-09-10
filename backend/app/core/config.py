@@ -39,8 +39,17 @@ class Settings(BaseSettings):
                 f"http://127.0.0.1:{frontend_port}",
                 f"http://localhost:{backend_port}",
                 f"http://127.0.0.1:{backend_port}",
+                # Add internal Docker network origins
+                "http://frontend:3000",
+                "http://backend:8000",
             ]
             origins.extend(container_origins)
+        
+        # Always include internal Docker network hostnames for development
+        origins.extend([
+            "http://frontend:3000",
+            "http://backend:8000",
+        ])
         
         # Remove duplicates while preserving order
         return list(dict.fromkeys(origins))

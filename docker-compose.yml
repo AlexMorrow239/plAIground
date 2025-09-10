@@ -75,8 +75,10 @@ services:
     container_name: ${SESSION_ID:-sandbox}_frontend
     hostname: frontend
     environment:
-      # API endpoint configuration
+      # API endpoint configuration for browser access
       - NEXT_PUBLIC_API_URL=http://localhost:${BACKEND_PORT:-8000}
+      # Internal API URL for server-side requests (Docker network)
+      - INTERNAL_API_URL=http://backend:8000
       - NEXT_PUBLIC_SESSION_ID=${SESSION_ID:-default}
     
     ports:

@@ -3,6 +3,7 @@
 export const ENV = {
   // API Configuration
   API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  INTERNAL_API_URL: process.env.INTERNAL_API_URL || null,
   
   // Session Configuration
   SESSION_ID: process.env.NEXT_PUBLIC_SESSION_ID || null,
@@ -20,9 +21,25 @@ export const ENV = {
 
 // Helper functions
 export const getApiUrl = (endpoint: string = ''): string => {
+  // Server-side: use internal Docker network URL if available
+  if (typeof window === 'undefined' && ENV.INTERNAL_API_URL) {
+    const baseUrl = ENV.INTERNAL_API_URL.endsWith('/') ? ENV.INTERNAL_API_URL.slice(0, -1) : ENV.INTERNAL_API_URL;
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    return `${baseUrl}${cleanEndpoint}`;
+  }
+  
+  // Client-side: use public URL
   const baseUrl = ENV.API_URL.endsWith('/') ? ENV.API_URL.slice(0, -1) : ENV.API_URL;
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   return `${baseUrl}${cleanEndpoint}`;
+};
+
+export const getServerApiUrl = (endpoint: string = ''): string => {
+  // Force server-side URL for server-side requests
+  const baseUrl = ENV.INTERNAL_API_URL || ENV.API_URL;
+  const cleanUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${cleanUrl}${cleanEndpoint}`;
 };
 
 export const isValidFileType = (filename: string): boolean => {
