@@ -63,7 +63,7 @@ services:
     
     # Session-specific volumes for configuration
     volumes:
-      - ${SESSION_CONFIG_PATH:-./backend/sessions.json}:/app/sessions.json:ro
+      - ${SESSION_CONFIG_PATH:-./deployment/sessions.json}:/app/sessions.json:ro
     
     # Automatic restart policy
     restart: unless-stopped

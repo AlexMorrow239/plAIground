@@ -7,6 +7,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import secrets
 import string
 import json
+import os
 from pathlib import Path
 
 from app.core.config import settings
@@ -80,7 +81,19 @@ class SessionManager:
     def __init__(self):
         self.sessions: Dict[str, Dict[str, Any]] = {}
         self.session_start_times: Dict[str, datetime] = {}
-        self.sessions_file = Path("sessions.json")
+
+        # Determine session file location based on environment
+        if os.getenv('SESSION_ID'):
+            # Running in container - use mounted session config
+            self.sessions_file = Path("/app/sessions.json")
+        else:
+            # Running locally - check for developer override first
+            if settings.LOCAL_SESSIONS_FILE:
+                # Use developer-specified custom session file
+                self.sessions_file = Path(settings.LOCAL_SESSIONS_FILE)
+            else:
+                # Use default location
+                self.sessions_file = Path("../deployment/sessions/local/sessions.json")
 
     def create_session(self, username: str, password_hash: str) -> str:
         """Create a new session"""

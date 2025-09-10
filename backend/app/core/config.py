@@ -99,6 +99,9 @@ class Settings(BaseSettings):
     MAX_MEMORY_GB: int = int(os.getenv("MAX_MEMORY", "32"))
     MAX_TMPFS_GB: int = int(os.getenv("MAX_TMPFS", "10"))
 
+    # Developer Tools - Optional session file override for local development
+    LOCAL_SESSIONS_FILE: Optional[str] = os.getenv("LOCAL_SESSIONS_FILE")
+
     class Config:
         env_file = ".env"
         case_sensitive = True

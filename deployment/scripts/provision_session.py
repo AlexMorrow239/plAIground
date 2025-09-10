@@ -187,7 +187,10 @@ def generate_container_config(session: Dict[str, Any], backend_port: int, fronte
 
 def create_container_env_file(container_config: Dict[str, Any], session_config_path: Path) -> Path:
     """Create environment file for container deployment."""
-    env_file_path = deployment_dir / f".env.{container_config['session_id']}"
+    session_id = container_config['session_id']
+    session_dir = deployment_dir / "sessions" / session_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+    env_file_path = session_dir / ".env"
 
     # Generate secret key for this session
     secret_key = secrets.token_urlsafe(32)
@@ -274,7 +277,10 @@ def create_session_container(container_config: Dict[str, Any], session_config_pa
 
 def save_container_session_config(session: Dict[str, Any], container_config: Dict[str, Any]) -> Path:
     """Save session configuration file for container use."""
-    session_config_file = deployment_dir / f"session_{container_config['session_id']}.json"
+    session_id = container_config['session_id']
+    session_dir = deployment_dir / "sessions" / session_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+    session_config_file = session_dir / "session.json"
 
     session_data = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -308,7 +314,7 @@ def print_container_info(container_configs: List[Dict[str, Any]], credentials_li
     print("="*70)
     print("Stop containers:")
     for config in container_configs:
-        print(f"  docker-compose --env-file deployment/.env.{config['session_id']} down")
+        print(f"  docker-compose --env-file deployment/sessions/{config['session_id']}/.env down")
 
     print("\nCleanup all:")
     print("  python deployment/scripts/cleanup_session_containers.py --all")
@@ -424,8 +430,8 @@ def main():
         if args.output:
             output_path = Path(args.output)
         else:
-            # Default to backend/sessions.json relative to project root
-            output_path = backend_dir / "sessions.json"
+            # Default to deployment/sessions/local/sessions.json for consistency
+            output_path = deployment_dir / "sessions" / "local" / "sessions.json"
 
         # Generate sessions
         sessions = []
