@@ -4,8 +4,9 @@
 .DEFAULT_GOAL := help
 
 # Variables
-PYTHON := python3
-UVICORN := uvicorn
+VENV_ACTIVATE := source .venv/bin/activate &&
+PYTHON := $(VENV_ACTIVATE) python3
+UVICORN := $(VENV_ACTIVATE) uvicorn
 APP_MODULE := app.main:app
 HOST := 127.0.0.1
 PORT := 8000
