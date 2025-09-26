@@ -6,12 +6,16 @@ import asyncio
 
 from app.core.config import settings
 from app.core.security import session_manager
+from app.core.database import ephemeral_db  # Initialize in-memory database
 from app.api import auth, documents, chat, export
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print(f"Starting Legal AI Sandbox - Session TTL: {settings.SESSION_TTL_HOURS} hours")
+
+    # Initialize in-memory database (imported above, created on module load)
+    print(f"Ephemeral database initialized: {ephemeral_db is not None}")
 
     # Load pre-provisioned sessions from file
     session_manager.load_sessions_from_file()
