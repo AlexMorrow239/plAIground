@@ -54,7 +54,15 @@ export function useChatHistory() {
   return useQuery({
     queryKey: ["chat-history"],
     queryFn: ApiClient.getChatHistory,
-    enabled: typeof window !== "undefined" && !!localStorage.getItem("access_token"),
+    // Remove the enabled condition to let React Query handle retries
+    // The ProtectedRoute will ensure we're authenticated before this runs
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401s
+      if (error?.message?.includes("401") || error?.status === 401) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 }
 

@@ -19,7 +19,7 @@ export class ApiClient {
   static async login(username: string, password: string) {
     const response = await fetch(getApiUrl('/api/auth/login'), {
       method: "POST",
-      headers: this.getHeaders(false),
+      headers: ApiClient.getHeaders(false),
       body: JSON.stringify({ username, password }),
     });
 
@@ -33,7 +33,7 @@ export class ApiClient {
 
   static async getDocuments() {
     const response = await fetch(getApiUrl('/api/documents/list'), {
-      headers: this.getHeaders(),
+      headers: ApiClient.getHeaders(),
     });
 
     if (!response.ok) {
@@ -67,7 +67,7 @@ export class ApiClient {
   static async deleteDocument(documentId: string) {
     const response = await fetch(getApiUrl(`/api/documents/${documentId}`), {
       method: "DELETE",
-      headers: this.getHeaders(),
+      headers: ApiClient.getHeaders(),
     });
 
     if (!response.ok) {
@@ -80,7 +80,7 @@ export class ApiClient {
   static async sendChatMessage(message: string, conversationId?: string) {
     const response = await fetch(getApiUrl('/api/chat/send'), {
       method: "POST",
-      headers: this.getHeaders(),
+      headers: ApiClient.getHeaders(),
       body: JSON.stringify({
         message,
         conversation_id: conversationId,
@@ -97,20 +97,29 @@ export class ApiClient {
 
   static async getChatHistory() {
     const response = await fetch(getApiUrl('/api/chat/history'), {
-      headers: this.getHeaders(),
+      headers: ApiClient.getHeaders(),
     });
 
     if (!response.ok) {
-      throw new Error("Failed to fetch chat history");
+      if (response.status === 401) {
+        // Clear invalid token and redirect to login
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("session_id");
+        localStorage.removeItem("expires_at");
+        throw new Error("Authentication failed. Please login again.");
+      }
+      throw new Error(`Failed to fetch chat history: ${response.status} ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log("API Response - Chat History:", data);
+    return data;
   }
 
   static async clearConversation(conversationId: string) {
     const response = await fetch(getApiUrl(`/api/chat/history/${conversationId}`), {
       method: "DELETE",
-      headers: this.getHeaders(),
+      headers: ApiClient.getHeaders(),
     });
 
     if (!response.ok) {
@@ -122,7 +131,7 @@ export class ApiClient {
 
   static async exportAllData() {
     const response = await fetch(getApiUrl('/api/export/all'), {
-      headers: this.getHeaders(),
+      headers: ApiClient.getHeaders(),
     });
 
     if (!response.ok) {
@@ -134,7 +143,7 @@ export class ApiClient {
 
   static async getSessionStatus() {
     const response = await fetch(getApiUrl('/api/auth/session'), {
-      headers: this.getHeaders(),
+      headers: ApiClient.getHeaders(),
     });
 
     if (!response.ok) {
