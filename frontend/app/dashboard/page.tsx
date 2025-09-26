@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
   const [sessionInfo, setSessionInfo] = useState({
@@ -23,13 +23,6 @@ export default function DashboardPage() {
   }, []);
 
   const cards = [
-    {
-      title: "Documents",
-      description: "Upload and manage your confidential documents",
-      href: "/documents",
-      icon: "📄",
-      action: "Manage Documents",
-    },
     {
       title: "AI Chat",
       description: "Interact with the LLM using your documents",
@@ -76,7 +69,9 @@ export default function DashboardPage() {
   return (
     <div className="px-4 py-5 sm:px-6">
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Welcome to Your Research Session</h2>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Welcome to Your Research Session
+        </h2>
         <p className="mt-1 text-sm text-gray-600">
           Session ID: {sessionInfo.sessionId.substring(0, 8)}...
         </p>
@@ -86,16 +81,30 @@ export default function DashboardPage() {
       <div className="mb-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <div className="flex">
           <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            <svg
+              className="h-5 w-5 text-yellow-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
             </svg>
           </div>
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-yellow-800">Important Reminders</h3>
+            <h3 className="text-sm font-medium text-yellow-800">
+              Important Reminders
+            </h3>
             <div className="mt-2 text-sm text-yellow-700">
               <ul className="list-disc list-inside space-y-1">
-                <li>All data is stored in memory only - nothing is saved to disk</li>
-                <li>Your session will automatically terminate after 72 hours</li>
+                <li>
+                  All data is stored in memory only - nothing is saved to disk
+                </li>
+                <li>
+                  Your session will automatically terminate after 72 hours
+                </li>
                 <li>Export your data before session expiration</li>
                 <li>Once terminated, all data is permanently destroyed</li>
               </ul>
@@ -113,7 +122,9 @@ export default function DashboardPage() {
           >
             <div className="px-4 py-5 sm:p-6">
               <div className="text-3xl mb-3">{card.icon}</div>
-              <h3 className="text-lg font-medium text-gray-900">{card.title}</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                {card.title}
+              </h3>
               <p className="mt-1 text-sm text-gray-500">{card.description}</p>
               {card.onClick ? (
                 <button
@@ -139,19 +150,25 @@ export default function DashboardPage() {
       <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-3">
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">Documents Uploaded</dt>
+            <dt className="text-sm font-medium text-gray-500 truncate">
+              Documents Uploaded
+            </dt>
             <dd className="mt-1 text-3xl font-semibold text-gray-900">0</dd>
           </div>
         </div>
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">Chat Sessions</dt>
+            <dt className="text-sm font-medium text-gray-500 truncate">
+              Chat Sessions
+            </dt>
             <dd className="mt-1 text-3xl font-semibold text-gray-900">0</dd>
           </div>
         </div>
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">Storage Used</dt>
+            <dt className="text-sm font-medium text-gray-500 truncate">
+              Storage Used
+            </dt>
             <dd className="mt-1 text-3xl font-semibold text-gray-900">0 MB</dd>
           </div>
         </div>

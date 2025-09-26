@@ -25,7 +25,7 @@ async def upload_document(
     file: UploadFile = File(...),
     token_data: Dict[str, Any] = Depends(verify_token)
 ) -> DocumentInfo:
-    """Upload a document to temporary storage"""
+    """Upload a document to temporary storage for chat context"""
 
     # Validate filename exists
     if not file.filename:
@@ -42,42 +42,51 @@ async def upload_document(
             detail=f"File type {file_extension} not allowed. Allowed types: {settings.ALLOWED_FILE_TYPES}"
         )
 
-    # Check file size
-    file_size = 0
+    # Read file contents
     contents = await file.read()
     file_size = len(contents)
 
+    # Check file size
     if file_size > settings.MAX_FILE_SIZE_MB * 1024 * 1024:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"File size exceeds maximum allowed size of {settings.MAX_FILE_SIZE_MB}MB"
         )
 
+    # Get session ID
+    session_id = token_data.get("session_id")
+    if not session_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid session"
+        )
+
     # Generate document ID
-    doc_id = hashlib.md5(f"{file.filename}{datetime.now(timezone.utc)}".encode()).hexdigest()
+    doc_id = hashlib.md5(f"{file.filename}{datetime.now(timezone.utc).isoformat()}".encode()).hexdigest()[:16]
 
-    # Create upload directory if it doesn't exist (in tmpfs)
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    # Create session-specific upload directory if it doesn't exist
+    session_upload_dir = os.path.join(settings.UPLOAD_DIR, session_id)
+    os.makedirs(session_upload_dir, exist_ok=True)
 
-    # Save file to tmpfs
-    file_path = os.path.join(settings.UPLOAD_DIR, f"{doc_id}_{file.filename}")
+    # Save file to tmpfs with document ID prefix
+    safe_filename = os.path.basename(file.filename)  # Prevent path traversal
+    file_path = os.path.join(session_upload_dir, f"{doc_id}_{safe_filename}")
+
     with open(file_path, "wb") as f:
         f.write(contents)
 
     # Update session with document info
-    session_id = token_data.get("session_id")
-    if session_id:
-        session_data = session_manager.get_session(session_id)
-        if session_data:
-            document_info = {
-                "document_id": doc_id,
-                "filename": file.filename,
-                "path": file_path,
-                "size_bytes": file_size,
-                "upload_time": datetime.now(timezone.utc).isoformat(),
-                "file_type": file_extension
-            }
-            session_data["documents"].append(document_info)
+    session_data = session_manager.get_session(session_id)
+    if session_data:
+        document_info = {
+            "document_id": doc_id,
+            "filename": file.filename,
+            "path": file_path,
+            "size_bytes": file_size,
+            "upload_time": datetime.now(timezone.utc).isoformat(),
+            "file_type": file_extension
+        }
+        session_data["documents"].append(document_info)
 
     return DocumentInfo(
         filename=file.filename,
@@ -159,3 +168,39 @@ async def delete_document(
     documents.remove(doc_to_remove)
 
     return {"message": f"Document {doc_to_remove['filename']} deleted successfully"}
+
+
+@router.get("/{document_id}/path")
+async def get_document_path(
+    document_id: str,
+    token_data: Dict[str, Any] = Depends(verify_token)
+) -> Dict[str, str]:
+    """Get the file path of a document for chat context"""
+
+    session_id = token_data.get("session_id")
+    if not session_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found"
+        )
+
+    session_data = session_manager.get_session(session_id)
+    if not session_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found"
+        )
+
+    # Find document
+    for doc in session_data.get("documents", []):
+        if doc["document_id"] == document_id:
+            return {
+                "document_id": document_id,
+                "filename": doc["filename"],
+                "path": doc["path"]
+            }
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Document not found"
+    )

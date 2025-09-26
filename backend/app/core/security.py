@@ -98,15 +98,17 @@ class SessionManager:
     def create_session(self, username: str, password_hash: str) -> str:
         """Create a new session"""
         session_id = secrets.token_urlsafe(32)
+        now = datetime.now(timezone.utc)
         self.sessions[session_id] = {
             "username": username,
             "password_hash": password_hash,
-            "created_at": datetime.now(timezone.utc),
+            "created_at": now,
+            "expires_at": now + timedelta(hours=settings.SESSION_TTL_HOURS),
             "documents": [],
             "conversations": [],
             "active": True
         }
-        self.session_start_times[session_id] = datetime.now(timezone.utc)
+        self.session_start_times[session_id] = now
         return session_id
 
     def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:

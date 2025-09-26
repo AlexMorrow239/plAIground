@@ -121,6 +121,15 @@ def save_sessions(sessions: List[Dict[str, Any]], output_path: Path) -> None:
     print(f"\n✓ Sessions saved to: {output_path.resolve()}")
 
 
+def save_auth(auth_file_path: Path, credentials_list: List[Dict[str, str]]) -> None:
+    """Save auth file."""
+    auth_file_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(auth_file_path, 'w') as f:
+        json.dump(credentials_list, f, indent=2)
+
+    print(f"\n✓ Auth file saved to: {auth_file_path.resolve()}")
+
+
 def print_credentials(credentials_list: List[Dict[str, str]]) -> None:
     """Print credentials in a format easy for admin to copy."""
     print("\n" + "="*70)
@@ -429,13 +438,14 @@ def main():
         else:
             # Default to deployment/sessions/local/sessions.json for consistency
             output_path = deployment_dir / "sessions" / "local" / "sessions.json"
+            auth_file_path = deployment_dir / "sessions" / "local" / "auth.json"
 
         # Generate sessions
         sessions = []
         credentials_list = []
 
         print(f"Output file: {output_path.resolve()}")
-
+        print(f"Auth file: {auth_file_path.resolve()}")
         for i in range(args.count):
             session, credentials = generate_session()
             sessions.append(session)
@@ -452,6 +462,9 @@ def main():
 
         # Save sessions
         save_sessions(sessions, output_path)
+
+        # Save auth file
+        save_auth(auth_file_path, credentials_list)
 
         # Print credentials for admin
         print_credentials(credentials_list)
