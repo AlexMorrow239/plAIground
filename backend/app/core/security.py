@@ -83,7 +83,7 @@ class SessionManager:
         self.session_start_times: Dict[str, datetime] = {}
 
         # Determine session file location based on environment
-        if os.getenv('SESSION_ID'):
+        if settings.IS_CONTAINERIZED:
             # Running in container - use mounted session config
             self.sessions_file = Path("/app/sessions.json")
         else:
@@ -153,7 +153,14 @@ class SessionManager:
             print(f"Cleaned up expired session: {session_id}")
 
     def load_sessions_from_file(self) -> None:
-        """Load pre-provisioned sessions from JSON file"""
+        """Load pre-provisioned sessions from JSON file or create test user for local development"""
+
+        # If running locally (not containerized), auto-generate a test user
+        if not settings.IS_CONTAINERIZED:
+            self._create_test_user()
+            return
+
+        # Container mode: load from file as before
         if not self.sessions_file.exists():
             print(f"No sessions file found at {self.sessions_file}")
             return
@@ -198,6 +205,37 @@ class SessionManager:
 
         except Exception as e:
             print(f"Error loading sessions from file: {e}")
+
+    def _create_test_user(self) -> None:
+        """Create a test user for local development"""
+        # Generate a consistent test user
+        username = "test"
+        password = "test"
+        password_hash = get_password_hash(password)
+        session_id = secrets.token_urlsafe(32)
+
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(hours=settings.SESSION_TTL_HOURS)
+
+        # Create the test session
+        self.sessions[session_id] = {
+            "username": username,
+            "password_hash": password_hash,
+            "created_at": now,
+            "expires_at": expires_at,
+            "documents": [],
+            "conversations": [],
+            "active": True
+        }
+        self.session_start_times[session_id] = now
+
+        print("=" * 70)
+        print("LOCAL DEVELOPMENT MODE - Test User Created")
+        print("=" * 70)
+        print(f"Username: {username}")
+        print(f"Password: {password}")
+        print(f"Session expires in: {settings.SESSION_TTL_HOURS} hours")
+        print("=" * 70)
 
     def get_all_sessions(self) -> List[Dict[str, Any]]:
         """Get all active sessions (for admin monitoring)"""

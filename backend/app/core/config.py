@@ -18,9 +18,9 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = os.getenv("SECRET_KEY", "change-this-in-production-use-secrets-module")
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 72  # 72 hours to match session TTL
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
 
-    # Session Management  
+    # Session Management
     SESSION_TTL_HOURS: int = int(os.getenv("SESSION_TTL_HOURS", "72"))
     SESSION_WARNING_MINUTES: List[int] = [60, 15, 5]  # Warning times before expiration
 
@@ -32,12 +32,12 @@ class Settings(BaseSettings):
             "http://localhost:3000",
             "http://localhost:8000",
         ]
-        
+
         # Add container-specific origins if running in container
         if self.IS_CONTAINERIZED:
             frontend_port = os.getenv("FRONTEND_PORT", "3000")
             backend_port = os.getenv("BACKEND_PORT", "8000")
-            
+
             container_origins = [
                 f"http://localhost:{frontend_port}",
                 f"http://127.0.0.1:{frontend_port}",
@@ -48,51 +48,51 @@ class Settings(BaseSettings):
                 "http://backend:8000",
             ]
             origins.extend(container_origins)
-        
+
         # Always include internal Docker network hostnames for development
         origins.extend([
             "http://frontend:3000",
             "http://backend:8000",
         ])
-        
+
         # Remove duplicates while preserving order
         return list(dict.fromkeys(origins))
 
     # File Upload - Container-aware paths
-    MAX_FILE_SIZE_MB: int = 100
+    MAX_FILE_SIZE_MB: int = int(os.getenv("MAX_FILE_SIZE_MB", 100))
     ALLOWED_FILE_TYPES: List[str] = [".pdf", ".txt", ".docx"]
-    
+
     @property
     def UPLOAD_DIR(self) -> str:
         """Dynamic upload directory based on environment."""
         base_dir = os.getenv("UPLOAD_DIR", "/tmp/sandbox/uploads")
-        
+
         # Ensure directory exists in container
         if self.IS_CONTAINERIZED:
             os.makedirs(base_dir, exist_ok=True)
-            
+
         return base_dir
-    
-    @property 
+
+    @property
     def DOCUMENTS_DIR(self) -> str:
         """Dynamic documents directory based on environment."""
         base_dir = os.getenv("DOCUMENTS_DIR", "/tmp/sandbox/documents")
-        
+
         # Ensure directory exists in container
         if self.IS_CONTAINERIZED:
             os.makedirs(base_dir, exist_ok=True)
-            
+
         return base_dir
-    
+
     @property
     def SESSIONS_DIR(self) -> str:
         """Dynamic sessions directory based on environment."""
         base_dir = os.getenv("SESSIONS_DIR", "/tmp/sandbox/sessions")
-        
+
         # Ensure directory exists in container
         if self.IS_CONTAINERIZED:
             os.makedirs(base_dir, exist_ok=True)
-            
+
         return base_dir
 
     # LLM Configuration
@@ -100,17 +100,6 @@ class Settings(BaseSettings):
     DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "llama3:8b")
     MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "4096"))
     TEMPERATURE: float = float(os.getenv("TEMPERATURE", "0.7"))
-
-    # Database (in-memory only for MVP)
-    USE_IN_MEMORY_STORAGE: bool = True
-
-    # Admin Credentials (for manual provisioning)
-    ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
-    ADMIN_PASSWORD_HASH: str = os.getenv("ADMIN_PASSWORD_HASH", "")
-
-    # Container Resource Limits
-    MAX_MEMORY_GB: int = int(os.getenv("MAX_MEMORY", "32"))
-    MAX_TMPFS_GB: int = int(os.getenv("MAX_TMPFS", "10"))
 
     # Developer Tools - Optional session file override for local development
     LOCAL_SESSIONS_FILE: Optional[str] = os.getenv("LOCAL_SESSIONS_FILE")

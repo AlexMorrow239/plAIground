@@ -1,5 +1,3 @@
-# Legal AI Research Sandbox - Backend Makefile
-
 # Default target
 .DEFAULT_GOAL := help
 

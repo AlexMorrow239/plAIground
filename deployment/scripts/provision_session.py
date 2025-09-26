@@ -6,23 +6,20 @@ This script generates researcher credentials and creates session containers
 for the Legal AI Research Sandbox with complete isolation.
 
 Usage:
-    # Generate single researcher session (local development)
+    # Generate single containerized session
     python provision_session.py
 
-    # Generate containerized session
-    python provision_session.py --container
-
     # Generate multiple sessions
-    python provision_session.py --count 3 --container
+    python provision_session.py --count 3
 
-    # Specify custom configuration
-    python provision_session.py --container --base-port 8100
+    # Specify custom base port
+    python provision_session.py --base-port 8100
 
 Features:
-- Local development: Creates sessions.json for backend loading
-- Container mode: Creates isolated Docker containers per researcher
+- Creates isolated Docker containers per researcher
 - Automatic port allocation and network isolation
 - Session cleanup and lifecycle management
+- Generates secure credentials for each researcher
 """
 
 import argparse
@@ -106,45 +103,6 @@ def generate_session() -> Tuple[Dict[str, Any], Dict[str, str]]:
     return session, credentials
 
 
-def save_sessions(sessions: List[Dict[str, Any]], output_path: Path) -> None:
-    """Save sessions to JSON file."""
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    sessions_data = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "sessions": sessions
-    }
-
-    with open(output_path, 'w') as f:
-        json.dump(sessions_data, f, indent=2)
-
-    print(f"\n✓ Sessions saved to: {output_path.resolve()}")
-
-
-def save_auth(auth_file_path: Path, credentials_list: List[Dict[str, str]]) -> None:
-    """Save auth file."""
-    auth_file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(auth_file_path, 'w') as f:
-        json.dump(credentials_list, f, indent=2)
-
-    print(f"\n✓ Auth file saved to: {auth_file_path.resolve()}")
-
-
-def print_credentials(credentials_list: List[Dict[str, str]]) -> None:
-    """Print credentials in a format easy for admin to copy."""
-    print("\n" + "="*70)
-    print("RESEARCHER CREDENTIALS")
-    print("="*70)
-    print("\nProvide these credentials to researchers via secure channel:")
-    print("(Email template below)\n")
-
-    for i, creds in enumerate(credentials_list, 1):
-        print(f"--- Researcher {i} ---")
-        print(f"Username: {creds['username']}")
-        print(f"Password: {creds['password']}")
-        print(f"Session ID: {creds['session_id']}")
-        print(f"Expires: {creds['expires_at']}")
-        print()
 
 
 def find_available_ports(base_port: int, count: int = 2) -> List[int]:
@@ -328,29 +286,13 @@ def print_container_info(container_configs: List[Dict[str, Any]], credentials_li
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Generate researcher credentials for Legal AI Research Sandbox'
+        description='Generate containerized researcher sessions for Legal AI Research Sandbox'
     )
     parser.add_argument(
         '--count',
         type=int,
         default=1,
         help='Number of researcher sessions to generate (default: 1)'
-    )
-    parser.add_argument(
-        '--output',
-        type=str,
-        default=None,
-        help='Output path for sessions.json file (default: backend/sessions.json)'
-    )
-    parser.add_argument(
-        '--append',
-        action='store_true',
-        help='Append to existing sessions file instead of overwriting'
-    )
-    parser.add_argument(
-        '--container',
-        action='store_true',
-        help='Create containerized sessions with Docker isolation'
     )
     parser.add_argument(
         '--base-port',
@@ -361,122 +303,70 @@ def main():
 
     args = parser.parse_args()
 
-    # Container mode vs local development mode
-    if args.container:
-        print(f"\nCONTAINER MODE: Creating {args.count} isolated container session(s)")
-        print(f"Base port: {args.base_port}")
+    print(f"\nCreating {args.count} isolated container session(s)")
+    print(f"Base port: {args.base_port}")
 
-        # Check Docker/Podman availability
-        try:
-            result = subprocess.run(['docker', '--version'], capture_output=True) or subprocess.run(['podman', '--version'], capture_output=True)
-            if result.returncode != 0:
-                print("Docker or Podman not available. Please install Docker or Podman to use container mode.")
-                return
-        except FileNotFoundError:
-            print("Docker or Podman not found. Please install Docker or Podman to use container mode.")
+    # Check Docker/Podman availability
+    try:
+        result = subprocess.run(['docker', '--version'], capture_output=True) or subprocess.run(['podman', '--version'], capture_output=True)
+        if result.returncode != 0:
+            print("Docker or Podman not available. Please install Docker or Podman.")
             return
+    except FileNotFoundError:
+        print("Docker or Podman not found. Please install Docker or Podman.")
+        return
 
-        # Create deployment directory if it doesn't exist
-        deployment_dir.mkdir(exist_ok=True)
+    # Create deployment directory if it doesn't exist
+    deployment_dir.mkdir(exist_ok=True)
 
-        # Generate sessions and containers
-        sessions = []
-        credentials_list = []
-        container_configs = []
+    # Generate sessions and containers
+    sessions = []
+    credentials_list = []
+    container_configs = []
 
-        # Find available ports
-        try:
-            port_pairs = []
-            current_base = args.base_port
-            for i in range(args.count):
-                ports = find_available_ports(current_base, 2)
-                port_pairs.append((ports[0], ports[1]))  # backend, frontend
-                current_base = ports[1] + 1
-        except RuntimeError as e:
-            print(f"Error: {e}")
-            return
-
+    # Find available ports
+    try:
+        port_pairs = []
+        current_base = args.base_port
         for i in range(args.count):
-            session, credentials = generate_session()
-            sessions.append(session)
-            credentials_list.append(credentials)
+            ports = find_available_ports(current_base, 2)
+            port_pairs.append((ports[0], ports[1]))  # backend, frontend
+            current_base = ports[1] + 1
+    except RuntimeError as e:
+        print(f"Error: {e}")
+        return
 
-            backend_port, frontend_port = port_pairs[i]
-            container_config = generate_container_config(session, backend_port, frontend_port)
-            container_configs.append(container_config)
+    for i in range(args.count):
+        session, credentials = generate_session()
+        sessions.append(session)
+        credentials_list.append(credentials)
 
-            print(f"  ✓ Generated session {i+1}/{args.count}: {container_config['session_id']}")
+        backend_port, frontend_port = port_pairs[i]
+        container_config = generate_container_config(session, backend_port, frontend_port)
+        container_configs.append(container_config)
 
-            # Save session-specific config
-            session_config_path = save_container_session_config(session, container_config)
+        print(f"  ✓ Generated session {i+1}/{args.count}: {container_config['session_id']}")
 
-            # Create and start container
-            success = create_session_container(container_config, session_config_path)
-            if not success:
-                print(f"  ❌ Failed to create container for session {container_config['session_id']}")
-                continue
+        # Save session-specific config
+        session_config_path = save_container_session_config(session, container_config)
 
-        # Print container access information
-        print_container_info(container_configs, credentials_list)
+        # Create and start container
+        success = create_session_container(container_config, session_config_path)
+        if not success:
+            print(f"  ❌ Failed to create container for session {container_config['session_id']}")
+            continue
 
-        print("\n" + "="*70)
-        print("CONTAINER SESSIONS ACTIVE")
-        print("="*70)
-        print("Each researcher now has an isolated container with:")
-        print("- Complete session isolation")
-        print("- Ephemeral tmpfs storage")
-        print("- Automatic cleanup after TTL")
-        print("- Individual authentication")
+    # Print container access information
+    print_container_info(container_configs, credentials_list)
 
-    else:
-        # Local development mode
-        print(f"\n📁 LOCAL MODE: Creating {args.count} researcher session(s) for local development")
-
-        # Determine output path
-        if args.output:
-            output_path = Path(args.output)
-        else:
-            # Default to deployment/sessions/local/sessions.json for consistency
-            output_path = deployment_dir / "sessions" / "local" / "sessions.json"
-            auth_file_path = deployment_dir / "sessions" / "local" / "auth.json"
-
-        # Generate sessions
-        sessions = []
-        credentials_list = []
-
-        print(f"Output file: {output_path.resolve()}")
-        print(f"Auth file: {auth_file_path.resolve()}")
-        for i in range(args.count):
-            session, credentials = generate_session()
-            sessions.append(session)
-            credentials_list.append(credentials)
-            print(f"  ✓ Generated session {i+1}/{args.count}")
-
-        # Handle append mode
-        if args.append and output_path.exists():
-            with open(output_path, 'r') as f:
-                existing_data = json.load(f)
-                if 'sessions' in existing_data:
-                    sessions = existing_data['sessions'] + sessions
-                    print(f"  ✓ Appending to existing {len(existing_data['sessions'])} session(s)")
-
-        # Save sessions
-        save_sessions(sessions, output_path)
-
-        # Save auth file
-        save_auth(auth_file_path, credentials_list)
-
-        # Print credentials for admin
-        print_credentials(credentials_list)
-
-        print("\n" + "="*70)
-        print("NEXT STEPS:")
-        print("="*70)
-        print(f"1. Sessions file saved to: {output_path.resolve()}")
-        print("2. Start the backend server (it will load sessions automatically)")
-        print("3. Send credentials to researchers via secure channel")
-        print("IMPORTANT: Passwords are displayed once here and cannot be recovered.")
-        print()
+    print("\n" + "="*70)
+    print("CONTAINER SESSIONS ACTIVE")
+    print("="*70)
+    print("Each researcher now has an isolated container with:")
+    print("- Complete session isolation")
+    print("- Ephemeral tmpfs storage")
+    print("- Automatic cleanup after TTL")
+    print("- Individual authentication")
 
 
 if __name__ == "__main__":

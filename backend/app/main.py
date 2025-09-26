@@ -17,7 +17,12 @@ async def lifespan(app: FastAPI):
     # Initialize in-memory database (imported above, created on module load)
     print(f"Ephemeral database initialized: {ephemeral_db is not None}")
 
-    # Load pre-provisioned sessions from file
+    # Load pre-provisioned sessions from file or create test user for local dev
+    if settings.IS_CONTAINERIZED:
+        print("Container mode: Loading sessions from file")
+    else:
+        print("Local development mode: Creating test user")
+
     session_manager.load_sessions_from_file()
 
     # Start background task for session cleanup
