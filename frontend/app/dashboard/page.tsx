@@ -72,9 +72,6 @@ export default function DashboardPage() {
         <h2 className="text-2xl font-bold text-gray-900">
           Welcome to Your Research Session
         </h2>
-        <p className="mt-1 text-sm text-gray-600">
-          Session ID: {sessionInfo.sessionId.substring(0, 8)}...
-        </p>
       </div>
 
       {/* Important Notice */}
@@ -144,34 +141,6 @@ export default function DashboardPage() {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Quick Stats */}
-      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">
-              Documents Uploaded
-            </dt>
-            <dd className="mt-1 text-3xl font-semibold text-gray-900">0</dd>
-          </div>
-        </div>
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">
-              Chat Sessions
-            </dt>
-            <dd className="mt-1 text-3xl font-semibold text-gray-900">0</dd>
-          </div>
-        </div>
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <dt className="text-sm font-medium text-gray-500 truncate">
-              Storage Used
-            </dt>
-            <dd className="mt-1 text-3xl font-semibold text-gray-900">0 MB</dd>
-          </div>
-        </div>
       </div>
     </div>
   );
