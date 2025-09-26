@@ -68,10 +68,10 @@ export function useChatHistory() {
 
 export function useSendMessage() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ message, conversationId }: { message: string; conversationId?: string }) =>
-      ApiClient.sendChatMessage(message, conversationId),
+    mutationFn: ({ message, conversationId, documentIds }: { message: string; conversationId?: string; documentIds?: string[] }) =>
+      ApiClient.sendChatMessage(message, conversationId, documentIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["chat-history"] });
     },
@@ -113,5 +113,14 @@ export function useSessionStatus() {
     queryFn: ApiClient.getSessionStatus,
     enabled: typeof window !== "undefined" && !!localStorage.getItem("access_token"),
     refetchInterval: 60000, // Refetch every minute
+  });
+}
+
+// Document content hook
+export function useDocumentContent(documentId: string) {
+  return useQuery({
+    queryKey: ["document-content", documentId],
+    queryFn: () => ApiClient.getDocumentContent(documentId),
+    enabled: typeof window !== "undefined" && !!localStorage.getItem("access_token") && !!documentId,
   });
 }

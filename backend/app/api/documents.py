@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import os
 from datetime import datetime, timezone
 import hashlib
@@ -18,6 +18,11 @@ class DocumentInfo(BaseModel):
     upload_time: str
     file_type: str
     document_id: str
+    processed: bool = False
+    processing_error: Optional[str] = None
+    page_count: Optional[int] = None
+    word_count: Optional[int] = None
+
 
 
 @router.post("/upload", response_model=DocumentInfo)
@@ -75,7 +80,7 @@ async def upload_document(
     with open(file_path, "wb") as f:
         f.write(contents)
 
-    # Update session with document info
+    # Store basic info in session manager for tracking
     session_data = session_manager.get_session(session_id)
     if session_data:
         document_info = {
@@ -94,7 +99,11 @@ async def upload_document(
         size_mb=round(file_size / (1024 * 1024), 2),
         upload_time=datetime.now(timezone.utc).isoformat(),
         file_type=file_extension,
-        document_id=doc_id
+        document_id=doc_id,
+        processed=False,
+        processing_error=None,
+        page_count=None,
+        word_count=None
     )
 
 
@@ -106,6 +115,7 @@ async def list_documents(token_data: Dict[str, Any] = Depends(verify_token)) -> 
     if not session_id:
         return []
 
+    # Get documents from session manager
     session_data = session_manager.get_session(session_id)
     if not session_data:
         return []
@@ -118,7 +128,11 @@ async def list_documents(token_data: Dict[str, Any] = Depends(verify_token)) -> 
             size_mb=round(doc["size_bytes"] / (1024 * 1024), 2),
             upload_time=doc["upload_time"],
             file_type=doc["file_type"],
-            document_id=doc["document_id"]
+            document_id=doc["document_id"],
+            processed=False,
+            processing_error=None,
+            page_count=None,
+            word_count=None
         ))
 
     return documents
@@ -170,37 +184,3 @@ async def delete_document(
     return {"message": f"Document {doc_to_remove['filename']} deleted successfully"}
 
 
-@router.get("/{document_id}/path")
-async def get_document_path(
-    document_id: str,
-    token_data: Dict[str, Any] = Depends(verify_token)
-) -> Dict[str, str]:
-    """Get the file path of a document for chat context"""
-
-    session_id = token_data.get("session_id")
-    if not session_id:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Session not found"
-        )
-
-    session_data = session_manager.get_session(session_id)
-    if not session_data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Session not found"
-        )
-
-    # Find document
-    for doc in session_data.get("documents", []):
-        if doc["document_id"] == document_id:
-            return {
-                "document_id": document_id,
-                "filename": doc["filename"],
-                "path": doc["path"]
-            }
-
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Document not found"
-    )

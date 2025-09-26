@@ -25,7 +25,7 @@ export default function DashboardPage() {
   const cards = [
     {
       title: "AI Chat",
-      description: "Interact with the LLM using your documents",
+      description: "Interact with the LLM and upload documents directly in chat",
       href: "/chat",
       icon: "💬",
       action: "Start Chat",

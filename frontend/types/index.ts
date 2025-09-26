@@ -10,12 +10,23 @@ export interface Document {
   size_mb: number;
   upload_time: string;
   file_type: string;
+  processed?: boolean;
+  processing_error?: string | null;
+  page_count?: number | null;
+  word_count?: number | null;
 }
 
 export interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: string;
+  document_ids?: string[];
+  document_contents?: Record<string, {
+    filename: string;
+    content: string;
+    page_count?: number;
+    word_count?: number;
+  }>;
 }
 
 export interface Conversation {
@@ -28,6 +39,22 @@ export interface ChatResponse {
   response: string;
   conversation_id: string;
   timestamp: string;
+}
+
+export interface ChatRequest {
+  message: string;
+  conversation_id?: string;
+  document_ids?: string[];
+}
+
+export interface DocumentContent {
+  document_id: string;
+  filename: string;
+  content: string;
+  processed: boolean;
+  processing_error?: string | null;
+  page_count?: number | null;
+  word_count?: number | null;
 }
 
 export interface SessionInfo {

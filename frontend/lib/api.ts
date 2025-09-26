@@ -77,13 +77,14 @@ export class ApiClient {
     return response.json();
   }
 
-  static async sendChatMessage(message: string, conversationId?: string) {
+  static async sendChatMessage(message: string, conversationId?: string, documentIds?: string[]) {
     const response = await fetch(getApiUrl('/api/chat/send'), {
       method: "POST",
       headers: ApiClient.getHeaders(),
       body: JSON.stringify({
         message,
         conversation_id: conversationId,
+        document_ids: documentIds,
       }),
     });
 
@@ -148,6 +149,18 @@ export class ApiClient {
 
     if (!response.ok) {
       throw new Error("Failed to get session status");
+    }
+
+    return response.json();
+  }
+
+  static async getDocumentContent(documentId: string) {
+    const response = await fetch(getApiUrl(`/api/documents/${documentId}/content`), {
+      headers: ApiClient.getHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch document content");
     }
 
     return response.json();

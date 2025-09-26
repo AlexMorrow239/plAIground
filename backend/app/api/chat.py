@@ -3,10 +3,12 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 import httpx
+import os
 
 from app.core.config import settings
 from app.core.security import verify_token, session_manager
 from app.core.database import ephemeral_db
+from app.core.document_processor import DocumentProcessor
 
 router = APIRouter()
 
@@ -15,11 +17,14 @@ class ChatMessage(BaseModel):
     role: str  # "user" or "assistant"
     content: str
     timestamp: str
+    document_ids: Optional[List[str]] = None
+    document_contents: Optional[Dict[str, Any]] = None
 
 
 class ChatRequest(BaseModel):
     message: str
     conversation_id: Optional[str] = None
+    document_ids: Optional[List[str]] = None
 
 
 class ChatResponse(BaseModel):
@@ -67,11 +72,42 @@ async def send_message(
     else:
         conversation_id = conversation["conversation_id"]
 
-    # Add user message to database
+    # Process documents if any are attached
+    document_contents = {}
+    if request.document_ids:
+        session_upload_dir = os.path.join(settings.UPLOAD_DIR, session_id)
+
+        for doc_id in request.document_ids:
+            # Find the file in the upload directory
+            # Look for files matching pattern: {doc_id}_{filename}
+            found_file = None
+            if os.path.exists(session_upload_dir):
+                for filename in os.listdir(session_upload_dir):
+                    if filename.startswith(f"{doc_id}_"):
+                        found_file = os.path.join(session_upload_dir, filename)
+                        original_filename = filename[len(doc_id) + 1:]  # Remove doc_id prefix
+                        break
+
+            if found_file and os.path.exists(found_file):
+                # Process the document
+                result = DocumentProcessor.extract_text(found_file)
+                if not result.get("error"):
+                    content = result.get("content", "")
+                    # Store processed content with document metadata
+                    document_contents[doc_id] = {
+                        "filename": original_filename,
+                        "content": DocumentProcessor.prepare_for_llm(content),
+                        "page_count": result.get("page_count", 0),
+                        "word_count": result.get("word_count", 0)
+                    }
+
+    # Add user message to database with document associations and contents
     ephemeral_db.add_message(
         conversation_id=conversation_id,
         role="user",
-        content=request.message
+        content=request.message,
+        document_ids=request.document_ids,
+        document_contents=document_contents
     )
 
     # Get full conversation history for context
@@ -82,12 +118,42 @@ async def send_message(
             detail="Failed to retrieve conversation"
         )
 
+    # Collect all document contents from the conversation history
+    all_document_contents = []
+
     # Prepare messages for Ollama
     ollama_messages = []
+
+    # Add conversation history with document contents
     for msg in full_conversation["messages"]:
+        content = msg["content"]
+
+        # If this message has document contents, format them
+        if msg.get("document_contents"):
+            doc_info = []
+            for doc_id, doc_data in msg["document_contents"].items():
+                all_document_contents.append({
+                    "filename": doc_data["filename"],
+                    "content": doc_data["content"]
+                })
+                doc_info.append(doc_data["filename"])
+
+            # Add document reference to the message content
+            if doc_info and msg["role"] == "user":
+                content = f"[Attached documents: {', '.join(doc_info)}]\n\n{content}"
+
         ollama_messages.append({
             "role": msg["role"],
-            "content": msg["content"]
+            "content": content
+        })
+
+    # If there are any documents in the conversation, add them as context at the beginning
+    if all_document_contents:
+        document_context = DocumentProcessor.format_document_context(all_document_contents)
+        # Insert system message with all document contents at the beginning
+        ollama_messages.insert(0, {
+            "role": "system",
+            "content": document_context + "\n\nPlease use the above documents as context when answering the user's questions."
         })
 
     # Call Ollama API
@@ -150,7 +216,9 @@ async def get_conversation_history(
             ChatMessage(
                 role=msg["role"],
                 content=msg["content"],
-                timestamp=msg["timestamp"]
+                timestamp=msg["timestamp"],
+                document_ids=msg.get("document_ids", []),
+                document_contents=msg.get("document_contents", {})
             )
             for msg in conv["messages"]
         ]
