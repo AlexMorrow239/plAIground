@@ -24,39 +24,8 @@ class Settings(BaseSettings):
     SESSION_TTL_HOURS: int = int(os.getenv("SESSION_TTL_HOURS", "72"))
     SESSION_WARNING_MINUTES: List[int] = [60, 15, 5]  # Warning times before expiration
 
-    # CORS - Dynamic based on environment
-    @property
-    def ALLOWED_ORIGINS(self) -> List[str]:
-        """Dynamic CORS origins based on environment."""
-        origins = [
-            "http://localhost:3000",
-            "http://localhost:8000",
-        ]
-
-        # Add container-specific origins if running in container
-        if self.IS_CONTAINERIZED:
-            frontend_port = os.getenv("FRONTEND_PORT", "3000")
-            backend_port = os.getenv("BACKEND_PORT", "8000")
-
-            container_origins = [
-                f"http://localhost:{frontend_port}",
-                f"http://127.0.0.1:{frontend_port}",
-                f"http://localhost:{backend_port}",
-                f"http://127.0.0.1:{backend_port}",
-                # Add internal Docker network origins
-                "http://frontend:3000",
-                "http://backend:8000",
-            ]
-            origins.extend(container_origins)
-
-        # Always include internal Docker network hostnames for development
-        origins.extend([
-            "http://frontend:3000",
-            "http://backend:8000",
-        ])
-
-        # Remove duplicates while preserving order
-        return list(dict.fromkeys(origins))
+    # CORS
+    ALLOWED_ORIGINS: List[str] = ["*"]
 
     # File Upload - Container-aware paths
     MAX_FILE_SIZE_MB: int = int(os.getenv("MAX_FILE_SIZE_MB", 100))
