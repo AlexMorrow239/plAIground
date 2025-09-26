@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import Link from "next/link";
 import SessionTimer from "@/components/SessionTimer";
 import { useExportData } from "@/lib/hooks";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function DashboardLayout({
   children,
@@ -38,7 +38,6 @@ export default function DashboardLayout({
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard" },
-    { href: "/documents", label: "Documents" },
     { href: "/chat", label: "Chat" },
   ];
 

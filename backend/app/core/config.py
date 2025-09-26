@@ -1,6 +1,10 @@
 from pydantic_settings import BaseSettings
 from typing import List, Optional
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env.local file
+load_dotenv('.env.local')
 
 
 class Settings(BaseSettings):

@@ -5,6 +5,7 @@ description = "Legal AI Research Sandbox Backend - Secure ephemeral environment 
 requires-python = ">=3.12"
 dependencies = [
     "bcrypt>=4.3.0",
+    "dotenv>=0.9.9",
     "fastapi>=0.116.1",
     "httpx>=0.28.1",
     "pydantic-settings>=2.10.1",
