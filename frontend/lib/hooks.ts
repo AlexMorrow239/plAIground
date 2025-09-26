@@ -1,15 +1,20 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiClient } from "./api";
 
 // Auth hooks
 export function useLogin() {
   return useMutation({
-    mutationFn: ({ username, password }: { username: string; password: string }) =>
-      ApiClient.login(username, password),
+    mutationFn: ({
+      username,
+      password,
+    }: {
+      username: string;
+      password: string;
+    }) => ApiClient.login(username, password),
     onSuccess: (data) => {
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("session_id", data.session_id);
-      
+
       // Calculate expires_at timestamp from expires_in (seconds)
       const expiresAt = new Date(Date.now() + data.expires_in * 1000);
       localStorage.setItem("expires_at", expiresAt.toISOString());
@@ -23,13 +28,14 @@ export function useDocuments() {
   return useQuery({
     queryKey: ["documents"],
     queryFn: ApiClient.getDocuments,
-    enabled: typeof window !== "undefined" && !!localStorage.getItem("access_token"),
+    enabled:
+      typeof window !== "undefined" && !!localStorage.getItem("access_token"),
   });
 }
 
 export function useUploadDocument() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (file: File) => ApiClient.uploadDocument(file),
     onSuccess: () => {
@@ -40,7 +46,7 @@ export function useUploadDocument() {
 
 export function useDeleteDocument() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (documentId: string) => ApiClient.deleteDocument(documentId),
     onSuccess: () => {
@@ -56,7 +62,10 @@ export function useChatHistory() {
     queryFn: ApiClient.getChatHistory,
     // Remove the enabled condition to let React Query handle retries
     // The ProtectedRoute will ensure we're authenticated before this runs
-    retry: (failureCount, error: any) => {
+    retry: (
+      failureCount,
+      error: { message: string; status: number } | null
+    ) => {
       // Don't retry on 401s
       if (error?.message?.includes("401") || error?.status === 401) {
         return false;
@@ -70,8 +79,15 @@ export function useSendMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ message, conversationId, documentIds }: { message: string; conversationId?: string; documentIds?: string[] }) =>
-      ApiClient.sendChatMessage(message, conversationId, documentIds),
+    mutationFn: ({
+      message,
+      conversationId,
+      documentIds,
+    }: {
+      message: string;
+      conversationId?: string;
+      documentIds?: string[];
+    }) => ApiClient.sendChatMessage(message, conversationId, documentIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["chat-history"] });
     },
@@ -80,9 +96,10 @@ export function useSendMessage() {
 
 export function useClearConversation() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (conversationId: string) => ApiClient.clearConversation(conversationId),
+    mutationFn: (conversationId: string) =>
+      ApiClient.clearConversation(conversationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["chat-history"] });
     },
@@ -111,7 +128,8 @@ export function useSessionStatus() {
   return useQuery({
     queryKey: ["session-status"],
     queryFn: ApiClient.getSessionStatus,
-    enabled: typeof window !== "undefined" && !!localStorage.getItem("access_token"),
+    enabled:
+      typeof window !== "undefined" && !!localStorage.getItem("access_token"),
     refetchInterval: 60000, // Refetch every minute
   });
 }
@@ -121,6 +139,9 @@ export function useDocumentContent(documentId: string) {
   return useQuery({
     queryKey: ["document-content", documentId],
     queryFn: () => ApiClient.getDocumentContent(documentId),
-    enabled: typeof window !== "undefined" && !!localStorage.getItem("access_token") && !!documentId,
+    enabled:
+      typeof window !== "undefined" &&
+      !!localStorage.getItem("access_token") &&
+      !!documentId,
   });
 }

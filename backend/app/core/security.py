@@ -7,7 +7,6 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import secrets
 import string
 import json
-import os
 from pathlib import Path
 
 from app.core.config import settings

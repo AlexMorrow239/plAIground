@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { useSendMessage, useUploadDocument } from "@/lib/hooks";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useSendMessage, useUploadDocument } from "@/lib/hooks";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 
 interface ChatResponse {
   conversation_id: string;
@@ -23,12 +24,12 @@ function NewChatPage() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      setSelectedFiles(prev => [...prev, ...files]);
+      setSelectedFiles((prev) => [...prev, ...files]);
     }
   };
 
   const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const uploadFiles = async (): Promise<string[]> => {
@@ -53,7 +54,12 @@ function NewChatPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!message.trim() && selectedFiles.length === 0) || sendMessageMutation.isPending || isUploading) return;
+    if (
+      (!message.trim() && selectedFiles.length === 0) ||
+      sendMessageMutation.isPending ||
+      isUploading
+    )
+      return;
 
     let documentIds: string[] = [];
 
@@ -62,6 +68,7 @@ function NewChatPage() {
       try {
         documentIds = await uploadFiles();
       } catch (error) {
+        console.error(error);
         alert("Failed to upload files. Please try again.");
         return;
       }
@@ -85,7 +92,10 @@ function NewChatPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="message"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             What would you like to discuss?
           </label>
 
@@ -144,8 +154,18 @@ function NewChatPage() {
               htmlFor="file-upload-new"
               className="inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
             >
-              <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              <svg
+                className="w-4 h-4 mr-2 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                />
               </svg>
               Attach files
             </label>
@@ -167,17 +187,26 @@ function NewChatPage() {
 
         <button
           type="submit"
-          disabled={sendMessageMutation.isPending || isUploading || (!message.trim() && selectedFiles.length === 0)}
+          disabled={
+            sendMessageMutation.isPending ||
+            isUploading ||
+            (!message.trim() && selectedFiles.length === 0)
+          }
           className="w-full px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {sendMessageMutation.isPending || isUploading ? "Starting conversation..." : "Start Conversation"}
+          {sendMessageMutation.isPending || isUploading
+            ? "Starting conversation..."
+            : "Start Conversation"}
         </button>
       </form>
 
       <div className="mt-8 text-center">
-        <a href="/chat/history" className="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
+        <Link
+          href="/chat/history"
+          className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+        >
           View Conversation History →
-        </a>
+        </Link>
       </div>
     </div>
   );

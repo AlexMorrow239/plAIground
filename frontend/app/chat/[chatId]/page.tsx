@@ -1,20 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { useChatHistory, useSendMessage, useUploadDocument } from "@/lib/hooks";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import type { Message, Document } from "@/types";
-import { ApiClient } from "@/lib/api";
+import { useChatHistory, useSendMessage, useUploadDocument } from "@/lib/hooks";
+import type { Conversation, Message } from "@/types";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 function ChatConversation() {
   const params = useParams();
-  const router = useRouter();
   const chatId = params.chatId as string;
   const [message, setMessage] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [uploadedDocIds, setUploadedDocIds] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -24,7 +21,7 @@ function ChatConversation() {
   const uploadMutation = useUploadDocument();
 
   const currentConversation = conversations.find(
-    (c: any) => c.conversation_id === chatId
+    (c: Conversation) => c.conversation_id === chatId
   );
 
   useEffect(() => {
@@ -38,12 +35,12 @@ function ChatConversation() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      setSelectedFiles(prev => [...prev, ...files]);
+      setSelectedFiles((prev) => [...prev, ...files]);
     }
   };
 
   const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const uploadFiles = async (): Promise<string[]> => {
@@ -68,7 +65,12 @@ function ChatConversation() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!message.trim() && selectedFiles.length === 0) || sendMessageMutation.isPending || isUploading) return;
+    if (
+      (!message.trim() && selectedFiles.length === 0) ||
+      sendMessageMutation.isPending ||
+      isUploading
+    )
+      return;
 
     let documentIds: string[] = [];
 
@@ -76,7 +78,8 @@ function ChatConversation() {
     if (selectedFiles.length > 0) {
       try {
         documentIds = await uploadFiles();
-      } catch (error) {
+      } catch (e) {
+        console.error("Failed to upload files:", e);
         alert("Failed to upload files. Please try again.");
         return;
       }
@@ -85,7 +88,6 @@ function ChatConversation() {
     const messageToSend = message || "[Files attached]";
     setMessage("");
     setSelectedFiles([]);
-    setUploadedDocIds([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -152,7 +154,9 @@ function ChatConversation() {
           messages.map((msg: Message, index: number) => (
             <div
               key={index}
-              className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              className={`flex ${
+                msg.role === "user" ? "justify-end" : "justify-start"
+              }`}
             >
               <div
                 className={`max-w-2xl px-4 py-3 rounded-lg ${
@@ -162,27 +166,34 @@ function ChatConversation() {
                 }`}
               >
                 {/* Display attached documents if any */}
-                {msg.document_contents && Object.keys(msg.document_contents).length > 0 && (
-                  <div className={`mb-2 pb-2 border-b ${
-                    msg.role === "user" ? "border-indigo-400" : "border-gray-300"
-                  }`}>
-                    <div className="flex flex-wrap gap-1">
-                      {Object.entries(msg.document_contents).map(([docId, docData]) => (
-                        <span
-                          key={docId}
-                          className={`inline-flex items-center px-2 py-1 rounded text-xs ${
-                            msg.role === "user"
-                              ? "bg-indigo-500 text-indigo-100"
-                              : "bg-gray-200 text-gray-700"
-                          }`}
-                          title={`${docData.word_count || 0} words`}
-                        >
-                          📎 {docData.filename}
-                        </span>
-                      ))}
+                {msg.document_contents &&
+                  Object.keys(msg.document_contents).length > 0 && (
+                    <div
+                      className={`mb-2 pb-2 border-b ${
+                        msg.role === "user"
+                          ? "border-indigo-400"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(msg.document_contents).map(
+                          ([docId, docData]) => (
+                            <span
+                              key={docId}
+                              className={`inline-flex items-center px-2 py-1 rounded text-xs ${
+                                msg.role === "user"
+                                  ? "bg-indigo-500 text-indigo-100"
+                                  : "bg-gray-200 text-gray-700"
+                              }`}
+                              title={`${docData.word_count || 0} words`}
+                            >
+                              📎 {docData.filename}
+                            </span>
+                          )
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
                 <p className="whitespace-pre-wrap">{msg.content}</p>
                 <p
                   className={`text-xs mt-2 ${
@@ -201,8 +212,14 @@ function ChatConversation() {
             <div className="bg-gray-100 px-4 py-3 rounded-lg">
               <div className="flex space-x-2">
                 <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                <div
+                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.1s" }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
               </div>
             </div>
           </div>
@@ -268,8 +285,18 @@ function ChatConversation() {
             htmlFor="file-upload"
             className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
           >
-            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+            <svg
+              className="w-5 h-5 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+              />
             </svg>
           </label>
 
@@ -287,7 +314,11 @@ function ChatConversation() {
           {/* Send Button */}
           <button
             type="submit"
-            disabled={sendMessageMutation.isPending || isUploading || (!message.trim() && selectedFiles.length === 0)}
+            disabled={
+              sendMessageMutation.isPending ||
+              isUploading ||
+              (!message.trim() && selectedFiles.length === 0)
+            }
             className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {sendMessageMutation.isPending || isUploading ? "..." : "Send"}

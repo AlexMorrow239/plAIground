@@ -1,16 +1,21 @@
 "use client";
 
-import { useChatHistory } from "@/lib/hooks";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useChatHistory } from "@/lib/hooks";
 import type { Conversation } from "@/types";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 function ChatHistoryList() {
-  const { data: conversations = [], isLoading, error, isError } = useChatHistory() as {
+  const {
+    data: conversations = [],
+    isLoading,
+    error,
+    isError,
+  } = useChatHistory() as {
     data: Conversation[] | undefined;
     isLoading: boolean;
-    error: any;
+    error: Error | null;
     isError: boolean;
   };
   const router = useRouter();
@@ -21,7 +26,7 @@ function ChatHistoryList() {
     isLoading,
     error,
     isError,
-    hasToken: !!localStorage.getItem("access_token")
+    hasToken: !!localStorage.getItem("access_token"),
   });
 
   if (isLoading) {

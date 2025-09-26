@@ -1,31 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
-  const [sessionInfo, setSessionInfo] = useState({
-    username: "",
-    sessionId: "",
-    expiresAt: "",
-  });
-
-  useEffect(() => {
-    // Get session info from localStorage
-    const sessionId = localStorage.getItem("session_id") || "";
-    const expiresAt = localStorage.getItem("expires_at") || "";
-    // Note: In a real app, you'd get username from the token or an API call
-    setSessionInfo({
-      username: "Researcher",
-      sessionId,
-      expiresAt,
-    });
-  }, []);
-
   const cards = [
     {
       title: "AI Chat",
-      description: "Interact with the LLM and upload documents directly in chat",
+      description:
+        "Interact with the LLM and upload documents directly in chat",
       href: "/chat",
       icon: "💬",
       action: "Start Chat",
