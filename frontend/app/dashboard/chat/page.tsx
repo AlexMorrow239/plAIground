@@ -2,9 +2,9 @@
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useSendMessage, useUploadDocument } from "@/lib/hooks";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { Paperclip } from "lucide-react";
 
 interface ChatResponse {
   conversation_id: string;
@@ -88,7 +88,9 @@ function NewChatPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6 text-gray-900">Start a New Conversation</h1>
+      <h1 className="text-2xl font-bold mb-6 text-gray-900">
+        Start a New Conversation
+      </h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -154,19 +156,7 @@ function NewChatPage() {
               htmlFor="file-upload-new"
               className="inline-flex items-center px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
             >
-              <svg
-                className="w-4 h-4 mr-2 text-gray-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                />
-              </svg>
+              <Paperclip className="w-4 h-4 mr-2 text-gray-500" />
               Attach files
             </label>
             <span className="ml-2 text-xs text-gray-500">
@@ -199,15 +189,6 @@ function NewChatPage() {
             : "Start Conversation"}
         </button>
       </form>
-
-      <div className="mt-8 text-center">
-        <Link
-          href="/dashboard/chat/history"
-          className="text-gray-700 hover:text-gray-900 text-sm font-medium"
-        >
-          View Conversation History →
-        </Link>
-      </div>
     </div>
   );
 }

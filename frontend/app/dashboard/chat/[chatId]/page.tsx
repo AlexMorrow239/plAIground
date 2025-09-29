@@ -6,6 +6,7 @@ import type { Conversation, Message } from "@/types";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Paperclip } from "lucide-react";
 
 function ChatConversation() {
   const params = useParams();
@@ -128,22 +129,6 @@ function ChatConversation() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-200px)]">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <Link
-          href="/dashboard/chat/history"
-          className="text-gray-700 hover:text-gray-900 text-sm font-medium"
-        >
-          ← Back to History
-        </Link>
-        <Link
-          href="/dashboard/chat"
-          className="px-3 py-1 bg-gray-900 text-white text-sm rounded-md hover:bg-gray-800 transition-colors"
-        >
-          New Chat
-        </Link>
-      </div>
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
@@ -285,19 +270,7 @@ function ChatConversation() {
             htmlFor="file-upload"
             className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
           >
-            <svg
-              className="w-5 h-5 text-gray-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-              />
-            </svg>
+            <Paperclip className="w-5 h-5 text-gray-500" />
           </label>
 
           {/* Message Input */}
