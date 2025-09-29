@@ -16,6 +16,7 @@ function ChatConversation() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: conversations = [], isLoading } = useChatHistory();
   const sendMessageMutation = useSendMessage();
@@ -28,6 +29,27 @@ function ChatConversation() {
   useEffect(() => {
     scrollToBottom();
   }, [currentConversation?.messages]);
+
+  // Auto-resize textarea when message changes
+  useEffect(() => {
+    if (textareaRef.current) {
+      // Reset height to auto to get accurate scrollHeight
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.overflowY = 'hidden';
+
+      const scrollHeight = textareaRef.current.scrollHeight;
+
+      if (scrollHeight > 128) {
+        // Content exceeds max height - set to max and show scrollbar
+        textareaRef.current.style.height = '128px';
+        textareaRef.current.style.overflowY = 'auto';
+      } else {
+        // Content fits - set to actual height and hide scrollbar
+        textareaRef.current.style.height = scrollHeight + 'px';
+        textareaRef.current.style.overflowY = 'hidden';
+      }
+    }
+  }, [message]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -128,9 +150,9 @@ function ChatConversation() {
   const messages = currentConversation.messages || [];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)]">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex flex-col h-full">
+      {/* Messages - with bottom padding to account for fixed input */}
+      <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-4">
         {messages.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             No messages yet in this conversation
@@ -213,49 +235,52 @@ function ChatConversation() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Error Display */}
+      {/* Error Display - positioned above the fixed input */}
       {sendMessageMutation.error && (
-        <div className="px-4 py-2 bg-red-50 border-t border-red-200">
-          <p className="text-sm text-red-800">
-            {sendMessageMutation.error instanceof Error
-              ? sendMessageMutation.error.message
-              : "Failed to send message"}
-          </p>
+        <div className="fixed bottom-20 left-16 right-0 z-20 px-4 py-2 bg-red-50 border-t border-red-200">
+          <div className="max-w-4xl mx-auto">
+            <p className="text-sm text-red-800">
+              {sendMessageMutation.error instanceof Error
+                ? sendMessageMutation.error.message
+                : "Failed to send message"}
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Input Area */}
-      <form onSubmit={handleSubmit} className="border-t p-4">
-        {/* Selected Files Display */}
-        {selectedFiles.length > 0 && (
-          <div className="mb-2 p-2 bg-gray-50 rounded-md">
-            <div className="flex flex-wrap gap-2">
-              {selectedFiles.map((file, index) => (
-                <div
-                  key={index}
-                  className="inline-flex items-center px-3 py-1 bg-white border border-gray-300 rounded-md text-sm text-gray-700"
-                >
-                  <span className="mr-1">📄</span>
-                  <span className="mr-2">{file.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(index)}
-                    className="text-gray-500 hover:text-red-500"
+      {/* Fixed Input Area at bottom of viewport */}
+      <form onSubmit={handleSubmit} className="fixed bottom-0 left-16 right-0 bg-white border-t p-4 z-30">
+        <div className="max-w-4xl mx-auto">
+          {/* Selected Files Display */}
+          {selectedFiles.length > 0 && (
+            <div className="mb-2 p-2 bg-gray-50 rounded-md">
+              <div className="flex flex-wrap gap-2">
+                {selectedFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="inline-flex items-center px-3 py-1 bg-white border border-gray-300 rounded-md text-sm text-gray-700"
                   >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-            {isUploading && (
-              <div className="mt-2 text-sm text-gray-500">
-                Uploading files...
+                    <span className="mr-1">📄</span>
+                    <span className="mr-2">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="text-gray-500 hover:text-red-500"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        )}
+              {isUploading && (
+                <div className="mt-2 text-sm text-gray-500">
+                  Uploading files...
+                </div>
+              )}
+            </div>
+          )}
 
-        <div className="flex space-x-2">
+          <div className="flex items-end space-x-2">
           {/* File Input Button */}
           <input
             ref={fileInputRef}
@@ -268,34 +293,46 @@ function ChatConversation() {
           />
           <label
             htmlFor="file-upload"
-            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
+            className="inline-flex items-center px-3 h-[42px] border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer flex-shrink-0"
           >
             <Paperclip className="w-5 h-5 text-gray-500" />
           </label>
 
-          {/* Message Input */}
-          <input
-            type="text"
+          {/* Message Input - Auto-expanding textarea */}
+          <textarea
+            ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => {
+              // Submit on Enter (without shift)
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit(e as any);
+              }
+            }}
             placeholder="Type your message..."
             disabled={sendMessageMutation.isPending || isUploading}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:opacity-50 text-gray-900"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:opacity-50 text-gray-900 resize-none leading-normal"
+            rows={1}
+            style={{
+              maxHeight: '128px',
+            }}
             autoFocus
           />
 
-          {/* Send Button */}
-          <button
-            type="submit"
-            disabled={
-              sendMessageMutation.isPending ||
-              isUploading ||
-              (!message.trim() && selectedFiles.length === 0)
-            }
-            className="px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
-          >
-            {sendMessageMutation.isPending || isUploading ? "..." : "Send"}
-          </button>
+            {/* Send Button */}
+            <button
+              type="submit"
+              disabled={
+                sendMessageMutation.isPending ||
+                isUploading ||
+                (!message.trim() && selectedFiles.length === 0)
+              }
+              className="px-6 h-[42px] bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex-shrink-0"
+            >
+              {sendMessageMutation.isPending || isUploading ? "..." : "Send"}
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -305,7 +342,7 @@ function ChatConversation() {
 export default function ChatPage() {
   return (
     <ProtectedRoute>
-      <div className="max-w-4xl mx-auto">
+      <div className="h-full max-w-4xl mx-auto">
         <ChatConversation />
       </div>
     </ProtectedRoute>
