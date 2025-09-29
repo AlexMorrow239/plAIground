@@ -179,8 +179,10 @@ async def send_message(
 
     except httpx.HTTPError as e:
         # For now, use a mock response when Ollama is not available
+        print(f"Error processing message: {e}")
         assistant_response = f"I understand you said: '{request.message}'. The LLM service is currently unavailable, but your message has been saved."
     except Exception as e:
+        print(f"Error processing message: {e}")
         assistant_response = f"I received your message: '{request.message}'. There was an error processing it, but it has been saved."
 
     # Add assistant response to database

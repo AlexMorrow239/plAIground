@@ -142,6 +142,21 @@ export class ApiClient {
     return response.json();
   }
 
+  static async exportAsZip() {
+    const response = await fetch(getApiUrl('/api/export/zip'), {
+      headers: {
+        "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to export data as ZIP");
+    }
+
+    // Return the blob directly for ZIP file
+    return response.blob();
+  }
+
   static async getSessionStatus() {
     const response = await fetch(getApiUrl('/api/auth/session'), {
       headers: ApiClient.getHeaders(),

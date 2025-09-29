@@ -123,6 +123,27 @@ export function useExportData() {
   });
 }
 
+export function useExportZip() {
+  return useMutation({
+    mutationFn: ApiClient.exportAsZip,
+    onSuccess: (blob) => {
+      // Create download link for the ZIP file
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `legal-ai-research-export-${new Date().toISOString()}.zip`;
+      a.click();
+
+      // Clean up the URL object
+      URL.revokeObjectURL(url);
+    },
+    onError: (error) => {
+      console.error("Failed to export as ZIP:", error);
+      alert("Failed to export data as ZIP. Please try again.");
+    },
+  });
+}
+
 // Session hooks
 export function useSessionStatus() {
   return useQuery({
