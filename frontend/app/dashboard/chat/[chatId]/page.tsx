@@ -116,7 +116,7 @@ function ChatConversation() {
         <p className="text-gray-600 mb-4">Conversation not found</p>
         <Link
           href="/dashboard/chat/history"
-          className="text-indigo-600 hover:text-indigo-800"
+          className="text-gray-700 hover:text-gray-900"
         >
           ← Back to History
         </Link>
@@ -132,13 +132,13 @@ function ChatConversation() {
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <Link
           href="/dashboard/chat/history"
-          className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+          className="text-gray-700 hover:text-gray-900 text-sm font-medium"
         >
           ← Back to History
         </Link>
         <Link
           href="/dashboard/chat"
-          className="px-3 py-1 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700"
+          className="px-3 py-1 bg-gray-900 text-white text-sm rounded-md hover:bg-gray-800 transition-colors"
         >
           New Chat
         </Link>
@@ -161,7 +161,7 @@ function ChatConversation() {
               <div
                 className={`max-w-2xl px-4 py-3 rounded-lg ${
                   msg.role === "user"
-                    ? "bg-indigo-600 text-white"
+                    ? "bg-gray-900 text-white"
                     : "bg-gray-100 text-gray-900"
                 }`}
               >
@@ -171,7 +171,7 @@ function ChatConversation() {
                     <div
                       className={`mb-2 pb-2 border-b ${
                         msg.role === "user"
-                          ? "border-indigo-400"
+                          ? "border-gray-700"
                           : "border-gray-300"
                       }`}
                     >
@@ -182,7 +182,7 @@ function ChatConversation() {
                               key={docId}
                               className={`inline-flex items-center px-2 py-1 rounded text-xs ${
                                 msg.role === "user"
-                                  ? "bg-indigo-500 text-indigo-100"
+                                  ? "bg-gray-800 text-gray-200"
                                   : "bg-gray-200 text-gray-700"
                               }`}
                               title={`${docData.word_count || 0} words`}
@@ -197,7 +197,7 @@ function ChatConversation() {
                 <p className="whitespace-pre-wrap">{msg.content}</p>
                 <p
                   className={`text-xs mt-2 ${
-                    msg.role === "user" ? "text-indigo-200" : "text-gray-500"
+                    msg.role === "user" ? "text-gray-400" : "text-gray-500"
                   }`}
                 >
                   {new Date(msg.timestamp).toLocaleTimeString()}
@@ -248,7 +248,7 @@ function ChatConversation() {
               {selectedFiles.map((file, index) => (
                 <div
                   key={index}
-                  className="inline-flex items-center px-3 py-1 bg-white border border-gray-300 rounded-md text-sm"
+                  className="inline-flex items-center px-3 py-1 bg-white border border-gray-300 rounded-md text-sm text-gray-700"
                 >
                   <span className="mr-1">📄</span>
                   <span className="mr-2">{file.name}</span>
@@ -307,7 +307,7 @@ function ChatConversation() {
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Type your message..."
             disabled={sendMessageMutation.isPending || isUploading}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:opacity-50 text-gray-900"
             autoFocus
           />
 
@@ -319,7 +319,7 @@ function ChatConversation() {
               isUploading ||
               (!message.trim() && selectedFiles.length === 0)
             }
-            className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             {sendMessageMutation.isPending || isUploading ? "..." : "Send"}
           </button>

@@ -88,7 +88,7 @@ function NewChatPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Start a New Conversation</h1>
+      <h1 className="text-2xl font-bold mb-6 text-gray-900">Start a New Conversation</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -106,7 +106,7 @@ function NewChatPage() {
                 {selectedFiles.map((file, index) => (
                   <div
                     key={index}
-                    className="inline-flex items-center px-3 py-1 bg-white border border-gray-300 rounded-md text-sm"
+                    className="inline-flex items-center px-3 py-1 bg-white border border-gray-300 rounded-md text-sm text-gray-700"
                   >
                     <span className="mr-1">📄</span>
                     <span className="mr-2">{file.name}</span>
@@ -133,7 +133,7 @@ function NewChatPage() {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Type your message here..."
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 resize-none text-gray-900"
             rows={4}
             disabled={sendMessageMutation.isPending || isUploading}
             autoFocus
@@ -152,7 +152,7 @@ function NewChatPage() {
             />
             <label
               htmlFor="file-upload-new"
-              className="inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
+              className="inline-flex items-center px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
             >
               <svg
                 className="w-4 h-4 mr-2 text-gray-500"
@@ -192,7 +192,7 @@ function NewChatPage() {
             isUploading ||
             (!message.trim() && selectedFiles.length === 0)
           }
-          className="w-full px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full px-6 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
         >
           {sendMessageMutation.isPending || isUploading
             ? "Starting conversation..."
@@ -203,7 +203,7 @@ function NewChatPage() {
       <div className="mt-8 text-center">
         <Link
           href="/dashboard/chat/history"
-          className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+          className="text-gray-700 hover:text-gray-900 text-sm font-medium"
         >
           View Conversation History →
         </Link>

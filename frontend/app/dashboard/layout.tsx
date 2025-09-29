@@ -102,7 +102,7 @@ export default function DashboardLayout({
         {/* Logout Button at Bottom */}
         <button
           onClick={handleLogout}
-          className="w-12 h-12 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+          className="w-12 h-12 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors cursor-pointer"
           title="Logout"
         >
           <LogOutIcon className="w-6 h-6" />
@@ -123,7 +123,7 @@ export default function DashboardLayout({
                 disabled={
                   exportMutation.isPending || exportZipMutation.isPending
                 }
-                className="h-10 bg-gray-900 text-white px-4 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transition-colors text-sm font-medium"
+                className="h-10 bg-gray-900 text-white px-4 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transition-colors text-sm font-medium cursor-pointer"
               >
                 <DownloadIcon className="w-4 h-4" />
                 <span>
@@ -179,7 +179,7 @@ export default function DashboardLayout({
             {/* Logout Button */}
             <button
               onClick={handleLogout}
-              className="h-10 bg-gray-900 text-white px-4 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors text-sm font-medium"
+              className="h-10 bg-gray-900 text-white px-4 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors text-sm font-medium cursor-pointer"
             >
               <span>Logout</span>
               <LogOutIcon className="w-4 h-4" />

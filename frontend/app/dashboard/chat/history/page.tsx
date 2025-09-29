@@ -46,7 +46,7 @@ function ChatHistoryList() {
         </p>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
         >
           Retry
         </button>
@@ -73,7 +73,7 @@ function ChatHistoryList() {
         <p className="mt-2 text-sm text-gray-600">No conversations yet</p>
         <Link
           href="/dashboard/chat"
-          className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          className="mt-4 inline-block px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
         >
           Start Your First Conversation
         </Link>
@@ -118,10 +118,10 @@ export default function ChatHistoryPage() {
     <ProtectedRoute>
       <div className="max-w-4xl mx-auto p-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Conversation History</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Conversation History</h1>
           <Link
             href="/dashboard/chat"
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
           >
             New Conversation
           </Link>
