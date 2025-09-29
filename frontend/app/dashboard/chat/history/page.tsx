@@ -72,7 +72,7 @@ function ChatHistoryList() {
         </svg>
         <p className="mt-2 text-sm text-gray-600">No conversations yet</p>
         <Link
-          href="/chat"
+          href="/dashboard/chat"
           className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
         >
           Start Your First Conversation
@@ -86,7 +86,7 @@ function ChatHistoryList() {
       {conversations.map((conversation: Conversation) => (
         <div
           key={conversation.conversation_id}
-          onClick={() => router.push(`/chat/${conversation.conversation_id}`)}
+          onClick={() => router.push(`/dashboard/chat/${conversation.conversation_id}`)}
           className="p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md hover:border-gray-300 cursor-pointer transition-all"
         >
           <div className="flex justify-between items-start">
@@ -120,7 +120,7 @@ export default function ChatHistoryPage() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Conversation History</h1>
           <Link
-            href="/chat"
+            href="/dashboard/chat"
             className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             New Conversation

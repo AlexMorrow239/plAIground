@@ -8,7 +8,7 @@ export default function DashboardPage() {
       title: "AI Chat",
       description:
         "Interact with the LLM and upload documents directly in chat",
-      href: "/chat",
+      href: "/dashboard/chat",
       icon: "💬",
       action: "Start Chat",
     },

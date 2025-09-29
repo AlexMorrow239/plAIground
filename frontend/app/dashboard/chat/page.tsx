@@ -80,7 +80,7 @@ function NewChatPage() {
       { message: messageToSend, conversationId: undefined, documentIds },
       {
         onSuccess: (data: ChatResponse) => {
-          router.push(`/chat/${data.conversation_id}`);
+          router.push(`/dashboard/chat/${data.conversation_id}`);
         },
       }
     );
@@ -202,7 +202,7 @@ function NewChatPage() {
 
       <div className="mt-8 text-center">
         <Link
-          href="/chat/history"
+          href="/dashboard/chat/history"
           className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
         >
           View Conversation History →

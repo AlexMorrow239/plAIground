@@ -115,7 +115,7 @@ function ChatConversation() {
       <div className="text-center py-12">
         <p className="text-gray-600 mb-4">Conversation not found</p>
         <Link
-          href="/chat/history"
+          href="/dashboard/chat/history"
           className="text-indigo-600 hover:text-indigo-800"
         >
           ← Back to History
@@ -131,13 +131,13 @@ function ChatConversation() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <Link
-          href="/chat/history"
+          href="/dashboard/chat/history"
           className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
         >
           ← Back to History
         </Link>
         <Link
-          href="/chat"
+          href="/dashboard/chat"
           className="px-3 py-1 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700"
         >
           New Chat

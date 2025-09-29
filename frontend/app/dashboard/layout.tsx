@@ -51,7 +51,7 @@ export default function DashboardLayout({
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard" },
-    { href: "/chat", label: "Chat" },
+    { href: "/dashboard/chat", label: "Chat" },
   ];
 
   return (
