@@ -4,11 +4,14 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 import httpx
 import os
+import logging
 
 from app.core.config import settings
 from app.core.security import verify_token, session_manager
 from app.core.database import ephemeral_db
 from app.core.document_processor import DocumentProcessor
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -109,9 +112,10 @@ async def send_message(
                 if not result.get("error"):
                     content = result.get("content", "")
                     # Store processed content with document metadata
+                    # Use larger limit for document content (50k chars ~ 12k tokens)
                     document_contents[doc_id] = {
                         "filename": original_filename,
-                        "content": DocumentProcessor.prepare_for_llm(content),
+                        "content": DocumentProcessor.prepare_for_llm(content, max_length=50000),
                         "page_count": result.get("page_count", 0),
                         "word_count": result.get("word_count", 0)
                     }
@@ -133,63 +137,72 @@ async def send_message(
             detail="Failed to retrieve conversation"
         )
 
-    # Collect all document contents from the conversation history
-    all_document_contents = []
-
     # Prepare messages for Ollama
     ollama_messages = []
 
-    # Add conversation history with document contents
+    # Add conversation history with document contents inline
     for msg in full_conversation["messages"]:
         content = msg["content"]
 
-        # If this message has document contents, format them
-        if msg.get("document_contents"):
-            doc_info = []
-            for doc_id, doc_data in msg["document_contents"].items():
-                all_document_contents.append({
-                    "filename": doc_data["filename"],
-                    "content": doc_data["content"]
-                })
-                doc_info.append(doc_data["filename"])
+        # If this message has document contents, include them inline with the message
+        if msg.get("document_contents") and msg["role"] == "user":
+            # Start with the user's message
+            formatted_content = content
 
-            # Add document reference to the message content
-            if doc_info and msg["role"] == "user":
-                content = f"[Attached documents: {', '.join(doc_info)}]\n\n{content}"
+            # Add each document's content directly after the message
+            doc_sections = []
+            for doc_id, doc_data in msg["document_contents"].items():
+                doc_section = f"\n\n--- Document: {doc_data['filename']} ---\n"
+                doc_section += doc_data["content"]
+                doc_section += f"\n--- End of {doc_data['filename']} ---"
+                doc_sections.append(doc_section)
+
+            # Combine user message with document contents
+            if doc_sections:
+                formatted_content = content + "\n" + "\n".join(doc_sections)
+
+            content = formatted_content
 
         ollama_messages.append({
             "role": msg["role"],
             "content": content
         })
 
-    # If there are any documents in the conversation, add them as context at the beginning
-    if all_document_contents:
-        document_context = DocumentProcessor.format_document_context(all_document_contents)
-        # Insert system message with all document contents at the beginning
-        ollama_messages.insert(0, {
-            "role": "system",
-            "content": document_context + "\n\nPlease use the above documents as context when answering the user's questions."
-        })
-
     # Call Ollama API (we already checked it's available)
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"{settings.OLLAMA_BASE_URL}/api/chat",
-            json={
-                "model": settings.DEFAULT_MODEL,
-                "messages": ollama_messages,
-                "stream": False,
-                "options": {
-                    "temperature": settings.TEMPERATURE,
-                    "num_predict": settings.MAX_TOKENS
-                }
-            },
-            timeout=30.0
-        )
-        response.raise_for_status()
+    # Use longer timeout for requests with documents
+    timeout_seconds = 120.0 if any(msg.get("document_contents") for msg in full_conversation["messages"]) else 60.0
 
-        result = response.json()
-        assistant_response = result.get("message", {}).get("content", "")
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{settings.OLLAMA_BASE_URL}/api/chat",
+                json={
+                    "model": settings.DEFAULT_MODEL,
+                    "messages": ollama_messages,
+                    "stream": False,
+                    "options": {
+                        "temperature": settings.TEMPERATURE,
+                        "num_predict": settings.MAX_TOKENS
+                    }
+                },
+                timeout=timeout_seconds
+            )
+            response.raise_for_status()
+
+            result = response.json()
+            assistant_response = result.get("message", {}).get("content", "")
+    except httpx.TimeoutException:
+        # Handle timeout specifically for large document processing
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="The request took too long to process. Try with smaller documents or a simpler query."
+        )
+    except httpx.HTTPError as e:
+        logger.error(f"Ollama API error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Failed to get response from LLM service"
+        )
 
     # Add assistant response to database
     assistant_msg = ephemeral_db.add_message(
