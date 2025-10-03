@@ -60,6 +60,21 @@ async def send_message(
             detail="Session not found"
         )
 
+    # Check if Ollama is available before processing the message
+    try:
+        async with httpx.AsyncClient() as client:
+            health_response = await client.get(
+                f"{settings.OLLAMA_BASE_URL}/api/tags",
+                timeout=5.0
+            )
+            health_response.raise_for_status()
+    except (httpx.HTTPError, httpx.TimeoutException):
+        # Ollama is not available, return 503 without saving the message
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="LLM service is currently unavailable"
+        )
+
     # Get or create conversation in database
     conversation = None
     if request.conversation_id:
@@ -156,34 +171,25 @@ async def send_message(
             "content": document_context + "\n\nPlease use the above documents as context when answering the user's questions."
         })
 
-    # Call Ollama API
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/chat",
-                json={
-                    "model": settings.DEFAULT_MODEL,
-                    "messages": ollama_messages,
-                    "stream": False,
-                    "options": {
-                        "temperature": settings.TEMPERATURE,
-                        "num_predict": settings.MAX_TOKENS
-                    }
-                },
-                timeout=30.0
-            )
-            response.raise_for_status()
+    # Call Ollama API (we already checked it's available)
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{settings.OLLAMA_BASE_URL}/api/chat",
+            json={
+                "model": settings.DEFAULT_MODEL,
+                "messages": ollama_messages,
+                "stream": False,
+                "options": {
+                    "temperature": settings.TEMPERATURE,
+                    "num_predict": settings.MAX_TOKENS
+                }
+            },
+            timeout=30.0
+        )
+        response.raise_for_status()
 
-            result = response.json()
-            assistant_response = result.get("message", {}).get("content", "")
-
-    except httpx.HTTPError as e:
-        # For now, use a mock response when Ollama is not available
-        print(f"Error processing message: {e}")
-        assistant_response = f"I understand you said: '{request.message}'. The LLM service is currently unavailable, but your message has been saved."
-    except Exception as e:
-        print(f"Error processing message: {e}")
-        assistant_response = f"I received your message: '{request.message}'. There was an error processing it, but it has been saved."
+        result = response.json()
+        assistant_response = result.get("message", {}).get("content", "")
 
     # Add assistant response to database
     assistant_msg = ephemeral_db.add_message(

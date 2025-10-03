@@ -7,7 +7,7 @@ import asyncio
 from app.core.config import settings
 from app.core.security import session_manager
 from app.core.database import ephemeral_db  # Initialize in-memory database
-from app.api import auth, documents, chat, export
+from app.api import auth, documents, chat, export, health
 
 
 @asynccontextmanager
@@ -66,6 +66,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(export.router, prefix="/api/export", tags=["Export"])
+app.include_router(health.router, tags=["Health"])
 
 
 @app.get("/")

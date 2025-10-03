@@ -2,9 +2,10 @@
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useSendMessage, useUploadDocument } from "@/lib/hooks";
+import { Paperclip } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { Paperclip } from "lucide-react";
+import { toast } from "sonner";
 
 interface ChatResponse {
   conversation_id: string;
@@ -81,6 +82,17 @@ function NewChatPage() {
       {
         onSuccess: (data: ChatResponse) => {
           router.push(`/dashboard/chat/${data.conversation_id}`);
+        },
+        onError: (error: Error) => {
+          // Check if it's an LLM unavailable error
+          if (error.message === "LLM service is currently unavailable") {
+            toast.error(
+              "LLM service is currently unavailable. Please try again later."
+            );
+          } else {
+            // For other errors, display them in the UI as before
+            // The error will be shown by the existing error display
+          }
         },
       }
     );
@@ -165,15 +177,17 @@ function NewChatPage() {
           </div>
         </div>
 
-        {sendMessageMutation.error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-sm text-red-800">
-              {sendMessageMutation.error instanceof Error
-                ? sendMessageMutation.error.message
-                : "Failed to send message"}
-            </p>
-          </div>
-        )}
+        {sendMessageMutation.error &&
+          sendMessageMutation.error.message !==
+            "LLM service is currently unavailable" && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-800">
+                {sendMessageMutation.error instanceof Error
+                  ? sendMessageMutation.error.message
+                  : "Failed to send message"}
+              </p>
+            </div>
+          )}
 
         <button
           type="submit"

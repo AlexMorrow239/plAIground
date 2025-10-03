@@ -90,6 +90,10 @@ export class ApiClient {
 
     if (!response.ok) {
       const error = await response.json();
+      // Check specifically for 503 Service Unavailable
+      if (response.status === 503) {
+        throw new Error("LLM service is currently unavailable");
+      }
       throw new Error(error.detail || "Failed to send message");
     }
 
@@ -176,6 +180,18 @@ export class ApiClient {
 
     if (!response.ok) {
       throw new Error("Failed to fetch document content");
+    }
+
+    return response.json();
+  }
+
+  static async checkOllamaHealth() {
+    const response = await fetch(getApiUrl('/api/health/ollama'), {
+      headers: ApiClient.getHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to check Ollama health");
     }
 
     return response.json();

@@ -3,10 +3,11 @@
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useChatHistory, useSendMessage, useUploadDocument } from "@/lib/hooks";
 import type { Conversation, Message } from "@/types";
+import { Paperclip } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Paperclip } from "lucide-react";
+import { toast } from "sonner";
 
 function ChatConversation() {
   const params = useParams();
@@ -34,19 +35,19 @@ function ChatConversation() {
   useEffect(() => {
     if (textareaRef.current) {
       // Reset height to auto to get accurate scrollHeight
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.overflowY = 'hidden';
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.overflowY = "hidden";
 
       const scrollHeight = textareaRef.current.scrollHeight;
 
       if (scrollHeight > 128) {
         // Content exceeds max height - set to max and show scrollbar
-        textareaRef.current.style.height = '128px';
-        textareaRef.current.style.overflowY = 'auto';
+        textareaRef.current.style.height = "128px";
+        textareaRef.current.style.overflowY = "auto";
       } else {
         // Content fits - set to actual height and hide scrollbar
-        textareaRef.current.style.height = scrollHeight + 'px';
-        textareaRef.current.style.overflowY = 'hidden';
+        textareaRef.current.style.height = scrollHeight + "px";
+        textareaRef.current.style.overflowY = "hidden";
       }
     }
   }, [message]);
@@ -120,6 +121,17 @@ function ChatConversation() {
       {
         onSuccess: () => {
           scrollToBottom();
+        },
+        onError: (error: Error) => {
+          // Check if it's an LLM unavailable error
+          if (error.message === "LLM service is currently unavailable") {
+            toast.error(
+              "LLM service is currently unavailable. Please try again later."
+            );
+          } else {
+            // For other errors, show a generic toast
+            toast.error(error.message || "Failed to send message");
+          }
         },
       }
     );
@@ -236,20 +248,25 @@ function ChatConversation() {
       </div>
 
       {/* Error Display - positioned above the fixed input */}
-      {sendMessageMutation.error && (
-        <div className="fixed bottom-20 left-16 right-0 z-20 px-4 py-2 bg-red-50 border-t border-red-200">
-          <div className="max-w-4xl mx-auto">
-            <p className="text-sm text-red-800">
-              {sendMessageMutation.error instanceof Error
-                ? sendMessageMutation.error.message
-                : "Failed to send message"}
-            </p>
+      {sendMessageMutation.error &&
+        sendMessageMutation.error.message !==
+          "LLM service is currently unavailable" && (
+          <div className="fixed bottom-20 left-16 right-0 z-20 px-4 py-2 bg-red-50 border-t border-red-200">
+            <div className="max-w-4xl mx-auto">
+              <p className="text-sm text-red-800">
+                {sendMessageMutation.error instanceof Error
+                  ? sendMessageMutation.error.message
+                  : "Failed to send message"}
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Fixed Input Area at bottom of viewport */}
-      <form onSubmit={handleSubmit} className="fixed bottom-0 left-16 right-0 bg-white border-t p-4 z-30">
+      <form
+        onSubmit={handleSubmit}
+        className="fixed bottom-0 left-16 right-0 bg-white border-t p-4 z-30"
+      >
         <div className="max-w-4xl mx-auto">
           {/* Selected Files Display */}
           {selectedFiles.length > 0 && (
@@ -281,44 +298,44 @@ function ChatConversation() {
           )}
 
           <div className="flex items-end space-x-2">
-          {/* File Input Button */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            onChange={handleFileSelect}
-            accept=".pdf,.txt,.docx"
-            className="hidden"
-            id="file-upload"
-          />
-          <label
-            htmlFor="file-upload"
-            className="inline-flex items-center px-3 h-[42px] border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer flex-shrink-0"
-          >
-            <Paperclip className="w-5 h-5 text-gray-500" />
-          </label>
+            {/* File Input Button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={handleFileSelect}
+              accept=".pdf,.txt,.docx"
+              className="hidden"
+              id="file-upload"
+            />
+            <label
+              htmlFor="file-upload"
+              className="inline-flex items-center px-3 h-[42px] border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer flex-shrink-0"
+            >
+              <Paperclip className="w-5 h-5 text-gray-500" />
+            </label>
 
-          {/* Message Input - Auto-expanding textarea */}
-          <textarea
-            ref={textareaRef}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => {
-              // Submit on Enter (without shift)
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit(e as any);
-              }
-            }}
-            placeholder="Type your message..."
-            disabled={sendMessageMutation.isPending || isUploading}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:opacity-50 text-gray-900 resize-none leading-normal"
-            rows={1}
-            style={{
-              maxHeight: '128px',
-            }}
-            autoFocus
-          />
+            {/* Message Input - Auto-expanding textarea */}
+            <textarea
+              ref={textareaRef}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => {
+                // Submit on Enter (without shift)
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+              placeholder="Type your message..."
+              disabled={sendMessageMutation.isPending || isUploading}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:opacity-50 text-gray-900 resize-none leading-normal"
+              rows={1}
+              style={{
+                maxHeight: "128px",
+              }}
+              autoFocus
+            />
 
             {/* Send Button */}
             <button
