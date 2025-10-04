@@ -1,6 +1,6 @@
 """Health check endpoints."""
 from typing import Dict
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 import httpx
 from app.core.config import settings
 

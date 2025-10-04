@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useExportData } from "@/lib/hooks";
 
 export default function DashboardPage() {
+  const exportData = useExportData();
+
   const cards = [
     {
       title: "AI Chat",
@@ -18,33 +21,7 @@ export default function DashboardPage() {
       href: "#",
       icon: "💾",
       action: "Export All",
-      onClick: async () => {
-        const token = localStorage.getItem("access_token");
-        if (!token) return;
-
-        try {
-          const response = await fetch("http://localhost:8000/api/export/all", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const blob = new Blob([JSON.stringify(data, null, 2)], {
-              type: "application/json",
-            });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `legal-ai-research-export-${new Date().toISOString()}.json`;
-            a.click();
-          }
-        } catch (error) {
-          console.error("Export failed:", error);
-          alert("Failed to export data. Please try again.");
-        }
-      },
+      onClick: () => exportData.mutate(),
     },
   ];
 

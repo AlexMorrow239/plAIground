@@ -42,28 +42,6 @@ class Settings(BaseSettings):
 
         return base_dir
 
-    @property
-    def DOCUMENTS_DIR(self) -> str:
-        """Dynamic documents directory based on environment."""
-        base_dir = os.getenv("DOCUMENTS_DIR", "/tmp/sandbox/documents")
-
-        # Ensure directory exists in container
-        if self.IS_CONTAINERIZED:
-            os.makedirs(base_dir, exist_ok=True)
-
-        return base_dir
-
-    @property
-    def SESSIONS_DIR(self) -> str:
-        """Dynamic sessions directory based on environment."""
-        base_dir = os.getenv("SESSIONS_DIR", "/tmp/sandbox/sessions")
-
-        # Ensure directory exists in container
-        if self.IS_CONTAINERIZED:
-            os.makedirs(base_dir, exist_ok=True)
-
-        return base_dir
-
     # LLM Configuration
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "llama3:8b")

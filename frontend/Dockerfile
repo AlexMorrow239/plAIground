@@ -25,13 +25,11 @@ COPY . .
 
 # Build arguments for API URLs
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
-ARG INTERNAL_API_URL=http://backend:8000
 
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV INTERNAL_API_URL=$INTERNAL_API_URL
 
 # Build the application (without turbopack for better container compatibility)
 RUN bun run next build
@@ -53,7 +51,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # Runtime environment variables (can be overridden by docker-compose)
 ENV NEXT_PUBLIC_API_URL=http://localhost:8000
-ENV INTERNAL_API_URL=http://backend:8000
 
 # Copy built application
 COPY --from=builder /app/public ./public
