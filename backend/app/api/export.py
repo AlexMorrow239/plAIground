@@ -43,11 +43,15 @@ async def export_all_data(token_data: Dict[str, Any] = Depends(verify_token)) ->
         )
 
     # Calculate session duration
-    time_remaining = session_manager.get_session_time_remaining(session_id)
-    if time_remaining:
-        hours_used = settings.SESSION_TTL_HOURS - (time_remaining.total_seconds() / 3600)
+    session_created = session_data.get("created_at")
+    if isinstance(session_created, str):
+        session_created = datetime.fromisoformat(session_created)
+
+    if session_created:
+        duration = datetime.now(timezone.utc) - session_created
+        hours_used = duration.total_seconds() / 3600
     else:
-        hours_used = settings.SESSION_TTL_HOURS
+        hours_used = 0
 
     # Get conversations from the ephemeral database
     db_conversations = ephemeral_db.get_conversations_for_session(session_id)
@@ -86,7 +90,7 @@ async def export_all_data(token_data: Dict[str, Any] = Depends(verify_token)) ->
             "username": username,
             "session_id": session_id,
             "created_at": session_data.get("created_at", "").isoformat() if session_data.get("created_at") else "",
-            "session_ttl_hours": settings.SESSION_TTL_HOURS,
+            "expires_at": session_data.get("expires_at", "").isoformat() if session_data.get("expires_at") else "",
             "hours_used": round(hours_used, 2)
         },
         "documents": [
@@ -165,7 +169,7 @@ async def export_as_zip(token_data: Dict[str, Any] = Depends(verify_token)):
 Session ID: {session_id}
 Username: {username}
 Exported: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
-Session TTL: {settings.SESSION_TTL_HOURS} hours
+Session Expires: {session_data.get("expires_at", "N/A")}
 =====================================
 
 This export contains {len(db_conversations)} conversation(s).

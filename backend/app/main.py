@@ -12,7 +12,7 @@ from app.api import auth, documents, chat, export, health
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(f"Starting Legal AI Sandbox - Session TTL: {settings.SESSION_TTL_HOURS} hours")
+    print(f"Starting Legal AI Sandbox - Default session duration: {settings.DEFAULT_SESSION_DURATION_HOURS} hours")
 
     # Initialize in-memory database (imported above, created on module load)
     print(f"Ephemeral database initialized: {ephemeral_db is not None}")
@@ -74,7 +74,7 @@ async def root() -> Dict[str, Any]:
     return {
         "status": "running",
         "message": "Legal AI Research Sandbox API",
-        "session_ttl_hours": settings.SESSION_TTL_HOURS,
+        "default_session_duration_hours": settings.DEFAULT_SESSION_DURATION_HOURS,
         "max_file_size_mb": settings.MAX_FILE_SIZE_MB
     }
 

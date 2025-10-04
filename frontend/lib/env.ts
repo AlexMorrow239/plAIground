@@ -6,9 +6,6 @@ export const ENV = {
 
   // Session Configuration
   SESSION_ID: process.env.NEXT_PUBLIC_SESSION_ID || null,
-  SESSION_TTL_HOURS: parseInt(
-    process.env.NEXT_PUBLIC_SESSION_TTL_HOURS || "72"
-  ),
 
   // File Upload Configuration
   MAX_FILE_SIZE_MB: parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE_MB || "100"),

@@ -127,6 +127,6 @@ Sessions are stored in JSON with this structure:
 
 1. **Generate Test Sessions**: Run `python ../deployment/scripts/provision_session.py` from project root
 2. **Check Container Mode**: Look for `SESSION_ID` environment variable
-3. **Session TTL**: Default 72 hours, configurable via `SESSION_TTL_HOURS`
+3. **Session Duration**: Default 72 hours, sessions expire based on `expires_at` timestamp
 4. **File Size Limit**: 100MB default, configurable via `MAX_FILE_SIZE_MB`
 5. **Allowed Files**: `.pdf`, `.txt`, `.docx` only

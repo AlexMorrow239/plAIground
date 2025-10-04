@@ -13,7 +13,6 @@ interface AuthContextType {
   isAuthenticated: boolean;
   sessionId: string | null;
   expiresAt: Date | null;
-  sessionTTLHours: number;
   checkAuth: () => boolean;
   logout: () => void;
 }
@@ -25,13 +24,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
-  const [sessionTTLHours, setSessionTTLHours] = useState(72);
 
   const logout = useCallback(() => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("session_id");
     localStorage.removeItem("expires_at");
-    localStorage.removeItem("session_ttl_hours");
     setIsAuthenticated(false);
     setSessionId(null);
     setExpiresAt(null);
@@ -42,7 +39,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem("access_token");
     const storedSessionId = localStorage.getItem("session_id");
     const storedExpiresAt = localStorage.getItem("expires_at");
-    const storedTTL = localStorage.getItem("session_ttl_hours");
 
     if (!token || !storedSessionId || !storedExpiresAt) {
       setIsAuthenticated(false);
@@ -61,7 +57,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(true);
     setSessionId(storedSessionId);
     setExpiresAt(expiry);
-    setSessionTTLHours(storedTTL ? parseInt(storedTTL) : 72);
     return true;
   }, [logout]);
 
@@ -84,7 +79,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated,
         sessionId,
         expiresAt,
-        sessionTTLHours,
         checkAuth,
         logout,
       }}

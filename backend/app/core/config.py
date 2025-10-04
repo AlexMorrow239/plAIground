@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
 
     # Session Management
-    SESSION_TTL_HOURS: int = int(os.getenv("SESSION_TTL_HOURS", "72"))
+    DEFAULT_SESSION_DURATION_HOURS: int = 72  # Default session duration
     SESSION_WARNING_MINUTES: List[int] = [60, 15, 5]  # Warning times before expiration
 
     # CORS - Allow any localhost/127.0.0.1 on any port

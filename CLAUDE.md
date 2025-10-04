@@ -55,7 +55,7 @@ This is a secure, ephemeral Legal AI Research Sandbox where researchers interact
 ### Core Design Principles
 - **Zero Data Persistence**: All data stored in RAM (tmpfs), destroyed on container termination
 - **Session Isolation**: Each user gets isolated Docker container with unique network
-- **72-Hour TTL**: Sessions auto-expire with automatic cleanup
+- **72-Hour Duration**: Sessions expire after 72 hours with automatic cleanup
 - **JWT Authentication**: Stateless auth with session-scoped tokens
 
 ### Service Communication
@@ -70,7 +70,7 @@ User Browser → Frontend (Next.js:3000) → Backend (FastAPI:8000) → Ollama (
 ### Authentication Flow
 1. Frontend sends credentials to `/api/auth/login`
 2. Backend validates against `sessions.json`
-3. Returns JWT token (72hr expiry)
+3. Returns JWT token with session expiry time
 4. Frontend stores token in localStorage
 5. All API calls include `Authorization: Bearer <token>`
 6. Backend validates token and extracts session_id
@@ -101,14 +101,12 @@ User Browser → Frontend (Next.js:3000) → Backend (FastAPI:8000) → Ollama (
 ```bash
 SECRET_KEY=your-secret-key-here
 SESSION_ID=unique-session-id        # Set by Docker
-SESSION_TTL_HOURS=72
 OLLAMA_BASE_URL=http://ollama:11434 # For future LLM integration
 ```
 
 **Frontend** (`frontend/.env.local`):
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_SESSION_TTL_HOURS=72
 NEXT_PUBLIC_MAX_FILE_SIZE_MB=100
 NEXT_PUBLIC_ALLOWED_FILE_TYPES=.pdf,.txt,.docx
 ```

@@ -29,7 +29,7 @@ This is a Next.js 15 application using App Router with the following key pattern
 - `AuthProvider` in `lib/auth-context.tsx` wraps the entire app and manages auth state
 - Protected routes use `components/ProtectedRoute.tsx` component
 - Middleware (`middleware.ts`) handles initial route protection
-- Session TTL of 72 hours with automatic cleanup
+- Sessions expire after 72 hours with automatic cleanup
 
 ### API Integration
 - Centralized `ApiClient` class in `lib/api.ts` handles all backend communication
@@ -72,7 +72,6 @@ This is a Next.js 15 application using App Router with the following key pattern
 Required in `.env.local`:
 ```
 NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_SESSION_TTL_HOURS=72
 NEXT_PUBLIC_MAX_FILE_SIZE_MB=100
 NEXT_PUBLIC_ALLOWED_FILE_TYPES=.pdf,.txt,.docx
 ```

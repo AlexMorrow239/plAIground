@@ -86,7 +86,6 @@ def generate_session() -> Tuple[Dict[str, Any], Dict[str, str]]:
         "password_hash": password_hash,
         "created_at": created_at.isoformat(),
         "expires_at": expires_at.isoformat(),
-        "ttl_hours": 72,
         "active": True,
         "documents": [],
         "conversations": []
@@ -184,8 +183,7 @@ def generate_container_config(session: Dict[str, Any], backend_port: int, fronte
         'subnet': subnet,
         'container_name': f"legal_sandbox_{session_id}",
         'created_at': session['created_at'],
-        'expires_at': session['expires_at'],
-        'ttl_hours': session['ttl_hours']
+        'expires_at': session['expires_at']
     }
 
     return container_config
@@ -206,7 +204,6 @@ def create_container_env_file(container_config: Dict[str, Any], session_config_p
 
 # Session Identification
 SESSION_ID={container_config['session_id']}
-SESSION_TTL_HOURS={container_config['ttl_hours']}
 
 # Port allocation
 BACKEND_PORT={container_config['backend_port']}

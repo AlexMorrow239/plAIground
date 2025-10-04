@@ -247,7 +247,6 @@ def extend_session(session_id: str, additional_hours: int) -> bool:
         sessions = config.get('sessions', [])
         if sessions:
             sessions[0]['expires_at'] = new_expires.isoformat()
-            sessions[0]['ttl_hours'] = sessions[0].get('ttl_hours', 72) + additional_hours
 
         # Save updated config
         if save_session_config(session_id, config):

@@ -102,7 +102,7 @@ class SessionManager:
             "username": username,
             "password_hash": password_hash,
             "created_at": now,
-            "expires_at": now + timedelta(hours=settings.SESSION_TTL_HOURS),
+            "expires_at": now + timedelta(hours=settings.DEFAULT_SESSION_DURATION_HOURS),
             "documents": [],
             "conversations": [],
             "active": True
@@ -128,14 +128,16 @@ class SessionManager:
 
     def get_session_time_remaining(self, session_id: str) -> Optional[timedelta]:
         """Calculate remaining time for session"""
-        if session_id not in self.session_start_times:
+        session = self.get_session(session_id)
+        if not session or 'expires_at' not in session:
             return None
 
-        start_time = self.session_start_times[session_id]
-        elapsed = datetime.now(timezone.utc) - start_time
-        total_allowed = timedelta(hours=settings.SESSION_TTL_HOURS)
-        remaining = total_allowed - elapsed
+        expires_at = session['expires_at']
+        # Handle both datetime objects and ISO strings
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
 
+        remaining = expires_at - datetime.now(timezone.utc)
         return remaining if remaining.total_seconds() > 0 else timedelta(0)
 
     def cleanup_expired_sessions(self) -> None:
@@ -143,9 +145,15 @@ class SessionManager:
         current_time = datetime.now(timezone.utc)
         expired_sessions = []
 
-        for session_id, start_time in self.session_start_times.items():
-            if (current_time - start_time) > timedelta(hours=settings.SESSION_TTL_HOURS):
-                expired_sessions.append(session_id)
+        for session_id, session_data in self.sessions.items():
+            expires_at = session_data.get('expires_at')
+            if expires_at:
+                # Handle both datetime objects and ISO strings
+                if isinstance(expires_at, str):
+                    expires_at = datetime.fromisoformat(expires_at)
+
+                if expires_at < current_time:
+                    expired_sessions.append(session_id)
 
         for session_id in expired_sessions:
             self.delete_session(session_id)
@@ -214,7 +222,7 @@ class SessionManager:
         session_id = secrets.token_urlsafe(32)
 
         now = datetime.now(timezone.utc)
-        expires_at = now + timedelta(hours=settings.SESSION_TTL_HOURS)
+        expires_at = now + timedelta(hours=settings.DEFAULT_SESSION_DURATION_HOURS)
 
         # Create the test session
         self.sessions[session_id] = {
@@ -233,7 +241,8 @@ class SessionManager:
         print("=" * 70)
         print(f"Username: {username}")
         print(f"Password: {password}")
-        print(f"Session expires in: {settings.SESSION_TTL_HOURS} hours")
+        print(f"Session expires at: {expires_at.isoformat()}")
+        print(f"Session duration: {settings.DEFAULT_SESSION_DURATION_HOURS} hours")
         print("=" * 70)
 
     def get_all_sessions(self) -> List[Dict[str, Any]]:

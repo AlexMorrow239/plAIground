@@ -8,7 +8,6 @@ services:
     environment:
       # Session configuration
       - SESSION_ID=${SESSION_ID}
-      - SESSION_TTL_HOURS=${SESSION_TTL_HOURS:-72}
       - SECRET_KEY=${SECRET_KEY}
 
       # API Configuration

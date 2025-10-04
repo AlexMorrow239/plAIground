@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Dict, Any
 
 from app.core.config import settings
@@ -23,8 +23,8 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int
-    session_ttl_hours: int
     session_id: str
+    expires_at: str
 
 
 class SessionInfo(BaseModel):
@@ -74,11 +74,18 @@ async def login(credentials: LoginRequest) -> LoginResponse:
         expires_delta=access_token_expires
     )
 
+    # Get session expires_at
+    expires_at = session_data.get('expires_at')
+    if isinstance(expires_at, datetime):
+        expires_at_str = expires_at.isoformat()
+    else:
+        expires_at_str = str(expires_at) if expires_at else ""
+
     return LoginResponse(
         access_token=access_token,
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,  # Convert to seconds
-        session_ttl_hours=settings.SESSION_TTL_HOURS,
-        session_id=session_id
+        session_id=session_id,
+        expires_at=expires_at_str
     )
 
 
