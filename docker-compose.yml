@@ -41,6 +41,11 @@ services:
     networks:
       - session_network
 
+    # Dependencies
+    depends_on:
+      ollama:
+        condition: service_healthy
+
     # Session-specific volumes for configuration
     volumes:
       - ./deployment/sessions/${SESSION_ID}/session.json:/app/sessions.json:ro
@@ -100,10 +105,24 @@ services:
     hostname: ollama
     environment:
       - OLLAMA_KEEP_ALIVE=24h
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-llama3:8b}
+      - OLLAMA_MODELS=${OLLAMA_MODELS:-}
 
-    # Note: In production, this would be pre-pulled and cached
+    # Custom entrypoint to auto-pull models
+    entrypoint: ["/scripts/ollama_init.sh"]
+
+    # Volumes including init script
     volumes:
       - ollama_models:/root/.ollama
+      - ./deployment/scripts/ollama_init.sh:/scripts/ollama_init.sh:ro
+
+    # Health check for model availability
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
     # Network isolation
     networks:

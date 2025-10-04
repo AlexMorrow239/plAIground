@@ -223,7 +223,7 @@ SESSION_CONFIG_PATH={session_config_path.resolve()}
 
 # LLM Configuration (disabled by default)
 ENABLE_LLM=false
-OLLAMA_MODEL=llama3:8b
+DEFAULT_MODEL=llama3:8b
 """
 
     with open(env_file_path, 'w') as f:
@@ -251,7 +251,6 @@ def create_session_container(container_config: Dict[str, Any], session_config_pa
             'up', '--build', '-d'
         ],
         cwd=str(project_root),
-        capture_output=True,
         text=True
         )
 
