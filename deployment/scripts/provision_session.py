@@ -220,7 +220,7 @@ SESSION_CONFIG_PATH={session_config_path.resolve()}
 
 # LLM Configuration (disabled by default)
 ENABLE_LLM=false
-DEFAULT_MODEL=llama3:8b
+DEFAULT_MODEL=deepseek-r1:8b
 """
 
     with open(env_file_path, 'w') as f:

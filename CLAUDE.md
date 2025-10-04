@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ### Development - Full Stack
+
 ```bash
 # Start both frontend and backend concurrently
 # Terminal 1 - Backend (FastAPI on port 8000)
@@ -18,6 +19,7 @@ docker-compose up --build
 ```
 
 ### Backend Commands
+
 ```bash
 cd backend
 make install         # Install Python dependencies with uv
@@ -30,6 +32,7 @@ uv run isort app/    # Sort imports
 ```
 
 ### Frontend Commands
+
 ```bash
 cd frontend
 bun dev              # Development with Turbopack (port 3000)
@@ -39,6 +42,7 @@ bun lint             # Run ESLint
 ```
 
 ### Session Management
+
 ```bash
 # Generate test session (from project root)
 python deployment/scripts/provision_session.py
@@ -53,6 +57,7 @@ python deployment/scripts/cleanup_session_containers.py
 This is a secure, ephemeral Legal AI Research Sandbox where researchers interact with LLMs using confidential documents. The system ensures complete data isolation and destruction after use.
 
 ### Core Design Principles
+
 - **Zero Data Persistence**: All data stored in RAM (tmpfs), destroyed on container termination
 - **Session Isolation**: Each user gets isolated Docker container with unique network
 - **72-Hour Duration**: Sessions expire after 72 hours with automatic cleanup
@@ -68,6 +73,7 @@ User Browser → Frontend (Next.js:3000) → Backend (FastAPI:8000) → Ollama (
 ```
 
 ### Authentication Flow
+
 1. Frontend sends credentials to `/api/auth/login`
 2. Backend validates against `sessions.json`
 3. Returns JWT token with session expiry time
@@ -76,6 +82,7 @@ User Browser → Frontend (Next.js:3000) → Backend (FastAPI:8000) → Ollama (
 6. Backend validates token and extracts session_id
 
 ### Session Lifecycle
+
 1. **Provisioning**: Admin runs `provision_session.py` → creates session in `sessions.json`
 2. **Container Start**: Docker Compose spins up isolated environment
 3. **User Access**: Login with provided credentials
@@ -86,11 +93,13 @@ User Browser → Frontend (Next.js:3000) → Backend (FastAPI:8000) → Ollama (
 ### API Structure
 
 **Working Endpoints**:
+
 - `POST /api/auth/login` - JWT authentication
 - `POST /api/auth/logout` - Token invalidation
 - `GET /api/auth/status` - Session info & TTL
 
 **Placeholder Endpoints** (return mock data):
+
 - `/api/documents/*` - Document management
 - `/api/chat/*` - LLM interaction
 - `/api/export/*` - Data export
@@ -98,6 +107,7 @@ User Browser → Frontend (Next.js:3000) → Backend (FastAPI:8000) → Ollama (
 ### Environment Variables
 
 **Backend** (`backend/.env`):
+
 ```bash
 SECRET_KEY=your-secret-key-here
 SESSION_ID=unique-session-id        # Set by Docker
@@ -105,6 +115,7 @@ OLLAMA_BASE_URL=http://ollama:11434 # For future LLM integration
 ```
 
 **Frontend** (`frontend/.env.local`):
+
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_MAX_FILE_SIZE_MB=100
@@ -114,6 +125,7 @@ NEXT_PUBLIC_ALLOWED_FILE_TYPES=.pdf,.txt,.docx
 ### Docker Network Architecture
 
 Each session gets isolated network:
+
 - Frontend container: `<session_id>_frontend`
 - Backend container: `<session_id>_backend`
 - Network: `<session_id>_network` (172.20.0.0/24)
@@ -122,11 +134,13 @@ Each session gets isolated network:
 ### File Storage Paths
 
 **Container Mode** (production):
+
 - Sessions: `/app/sessions.json` (read-only mount)
 - Uploads: `/tmp/sandbox/uploads/{session_id}/`
 - Documents: `/tmp/sandbox/documents/{session_id}/`
 
 **Local Mode** (development):
+
 - Sessions: `../deployment/sessions/local/sessions.json`
 - Uploads: `./temp/uploads/{session_id}/`
 - Documents: `./temp/documents/{session_id}/`
@@ -134,6 +148,7 @@ Each session gets isolated network:
 ### Protected Route Pattern
 
 **Backend** (FastAPI):
+
 ```python
 from app.core.security import verify_token
 from fastapi import Depends
@@ -145,30 +160,34 @@ async def route(token_data: Dict = Depends(verify_token)):
 ```
 
 **Frontend** (Next.js):
+
 ```tsx
 // Use ProtectedRoute component
-import ProtectedRoute from '@/components/ProtectedRoute'
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // API calls automatically include auth
 const { data } = useQuery({
-  queryKey: ['documents'],
-  queryFn: () => apiClient.getDocuments() // Token injected
-})
+  queryKey: ["documents"],
+  queryFn: () => apiClient.getDocuments(), // Token injected
+});
 ```
 
 ### State Management
 
 **Frontend**:
+
 - Auth state: React Context (`AuthProvider`)
 - Server state: React Query (1-min cache)
 - Local state: Component useState
 
 **Backend**:
+
 - Session data: In-memory dict synced to JSON
 - File storage: tmpfs (RAM-based)
 - No database or persistent storage
 
 ### Security Features
+
 - JWT tokens expire with session
 - bcrypt password hashing
 - CORS configured for local ports only
@@ -177,6 +196,7 @@ const { data } = useQuery({
 - Resource limits (32GB RAM, 4 CPUs)
 
 ### Testing Authentication
+
 ```bash
 # 1. Generate session
 python deployment/scripts/provision_session.py
@@ -198,6 +218,7 @@ curl -X POST http://localhost:8000/api/auth/login \
 ## Implementation Status
 
 ### ✅ Fully Implemented
+
 - JWT authentication system
 - Session management with TTL
 - Protected routes (frontend & backend)
@@ -206,6 +227,7 @@ curl -X POST http://localhost:8000/api/auth/login \
 - Session countdown timer
 
 ### 📝 Placeholder/Mock
+
 - Document upload processing
 - Text extraction from PDFs/DOCX
 - LLM integration (Ollama)
@@ -213,13 +235,14 @@ curl -X POST http://localhost:8000/api/auth/login \
 - Export functionality
 
 ### 🚧 TODO for Production
+
 ```bash
 # Add document processing libraries
 cd backend
 uv add pypdf python-docx pdfplumber
 
 # Pull Ollama models (in container)
-docker exec -it <session_id>_ollama ollama pull llama3:8b
+docker exec -it <session_id>_ollama ollama pull deepseek-r1:8b
 ```
 
 ## Development Tips
@@ -227,12 +250,13 @@ docker exec -it <session_id>_ollama ollama pull llama3:8b
 1. **Check Container Mode**: Look for `SESSION_ID` env var
 2. **Session File Format**: See `backend/CLAUDE.md` for structure
 3. **Frontend Dev Tools**: React Query DevTools available in dev mode
-4. **API Docs**: http://localhost:8000/docs (FastAPI Swagger)
+4. **API Docs**: <http://localhost:8000/docs> (FastAPI Swagger)
 5. **Hot Reload**: Both frontend (Turbopack) and backend (uvicorn --reload) support it
 
 ## Common Tasks
 
 ### Add New Protected API Endpoint
+
 1. Create route in `backend/app/api/`
 2. Use `Depends(verify_token)` for auth
 3. Add types to `frontend/types/index.ts`
@@ -240,12 +264,14 @@ docker exec -it <session_id>_ollama ollama pull llama3:8b
 5. Create React Query hook in `frontend/lib/hooks.ts`
 
 ### Deploy New Session
+
 1. Run `provision_session.py` with desired parameters
 2. Set environment variables (SESSION_ID, ports)
 3. Run `docker-compose up -d`
 4. Share credentials with researcher
 
 ### Debug Authentication Issues
+
 1. Check browser DevTools for token in localStorage
 2. Verify `/api/auth/status` returns session info
 3. Check backend logs for JWT validation errors

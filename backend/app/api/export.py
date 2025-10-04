@@ -7,7 +7,6 @@ import json
 import zipfile
 from io import BytesIO
 
-from app.core.config import settings
 from app.core.security import verify_token, session_manager
 from app.core.database import ephemeral_db
 

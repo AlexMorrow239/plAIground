@@ -187,7 +187,7 @@ SECRET_KEY=your-secret-key-here
 SESSION_TTL_HOURS=72
 ALLOWED_ORIGINS=http://localhost:3000
 OLLAMA_BASE_URL=http://localhost:11434  # For future LLM integration
-DEFAULT_MODEL=llama3:8b                # For future LLM integration
+DEFAULT_MODEL=deepseek-r1:8b                # For future LLM integration
 ```
 
 **Frontend (.env.local):**

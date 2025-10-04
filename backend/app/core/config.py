@@ -47,7 +47,7 @@ class Settings(BaseSettings):
 
     # LLM Configuration
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "llama3:8b")
+    DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "deepseek-r1:8b")
     MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "4096"))
     TEMPERATURE: float = float(os.getenv("TEMPERATURE", "0.7"))
 

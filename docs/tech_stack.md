@@ -41,7 +41,7 @@ This document details the complete technical stack for the Legal AI Research San
 
 ```bash
 ollama/ollama:0.1.29
-# Models: llama3:8b, mistral:7b, mixtral:8x7b
+# Models: deepseek-r1:8b, mistral:7b, mixtral:8x7b
 ```
 
 ### Document Processing
@@ -213,6 +213,6 @@ VOLUME ["/tmp/sandbox"]
 ```yaml
 # Llama-3-8B with Ollama (Recommended for MVP)
 model:
-  name: "llama3:8b"
+  name: "deepseek-r1:8b"
   memory_required: "16GB"
 ```

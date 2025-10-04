@@ -18,7 +18,7 @@ services:
 
       # LLM Configuration (for future integration)
       - OLLAMA_BASE_URL=http://ollama:11434
-      - DEFAULT_MODEL=llama3:8b
+      - DEFAULT_MODEL=deepseek-r1:8b
 
     ports:
       - "${BACKEND_PORT}:8000"
@@ -104,7 +104,7 @@ services:
     hostname: ollama
     environment:
       - OLLAMA_KEEP_ALIVE=24h
-      - DEFAULT_MODEL=${DEFAULT_MODEL:-llama3:8b}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-deepseek-r1:8b}
       - OLLAMA_MODELS=${OLLAMA_MODELS:-}
 
     # Custom entrypoint to auto-pull models
