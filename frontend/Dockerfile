@@ -49,9 +49,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Runtime environment variables (can be overridden by docker-compose)
-ENV NEXT_PUBLIC_API_URL=http://localhost:8000
-
 # Copy built application
 COPY --from=builder /app/public ./public
 

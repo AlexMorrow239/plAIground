@@ -74,7 +74,7 @@ def generate_session() -> Tuple[Dict[str, Any], Dict[str, str]]:
     username = generate_username()
     password = generate_password()
     password_hash = hash_password(password)
-    session_id = secrets.token_urlsafe(32)
+    session_id = 'Session_' + secrets.token_hex(8)
 
     # Calculate session timing
     created_at = datetime.now(timezone.utc)
@@ -129,17 +129,59 @@ def find_available_ports(base_port: int, count: int = 2) -> List[int]:
     return available_ports
 
 
+def find_available_subnet() -> str:
+    """Find an available Docker subnet that doesn't conflict with existing networks."""
+    import random
+
+    # Get existing Docker networks
+    try:
+        result = subprocess.run(
+            ['docker', 'network', 'ls', '--format', '{{.Name}}'],
+            capture_output=True,
+            text=True
+        )
+        existing_networks = result.stdout.strip().split('\n') if result.stdout else []
+
+        # Get subnets of existing networks
+        existing_subnets = set()
+        for network in existing_networks:
+            if network:
+                inspect_result = subprocess.run(
+                    ['docker', 'network', 'inspect', network, '--format', '{{range .IPAM.Config}}{{.Subnet}}{{end}}'],
+                    capture_output=True,
+                    text=True
+                )
+                subnet = inspect_result.stdout.strip()
+                if subnet:
+                    existing_subnets.add(subnet)
+    except:
+        existing_subnets = set()
+
+    # Try to find an available subnet in the 172.20-172.31 range
+    for _ in range(100):
+        # Generate random subnet in 172.20.x.0/24 to 172.31.x.0/24 range
+        second_octet = random.randint(20, 31)
+        third_octet = random.randint(0, 255)
+        subnet = f"172.{second_octet}.{third_octet}.0/24"
+
+        if subnet not in existing_subnets:
+            return subnet
+
+    # Fallback to a high random range if nothing found
+    return f"172.{random.randint(100, 200)}.{random.randint(0, 255)}.0/24"
+
+
 def generate_container_config(session: Dict[str, Any], backend_port: int, frontend_port: int) -> Dict[str, Any]:
     """Generate container-specific configuration."""
-    session_id = session['session_id'][:12]  # Truncate for container naming
-    subnet_third = hash(session_id) % 200 + 1  # Generate unique subnet
+    session_id = session['session_id']  # Use full session ID
+    subnet = find_available_subnet()  # Find an available subnet
 
     container_config = {
         'session_id': session_id,
         'session_full_id': session['session_id'],
         'backend_port': backend_port,
         'frontend_port': frontend_port,
-        'subnet': f"{BASE_SUBNET}.{subnet_third}.0/24",
+        'subnet': subnet,
         'container_name': f"legal_sandbox_{session_id}",
         'created_at': session['created_at'],
         'expires_at': session['expires_at'],
@@ -201,11 +243,12 @@ def create_session_container(container_config: Dict[str, Any], session_config_pa
         print(f"     Frontend: http://localhost:{container_config['frontend_port']}")
 
         # Start the container using docker-compose
+        # --build flag ensures frontend is built with correct NEXT_PUBLIC_API_URL
         result = subprocess.run([
             'docker-compose',
             '-f', str(DOCKER_COMPOSE_FILE),
             '--env-file', str(env_file),
-            'up', '-d'
+            'up', '--build', '-d'
         ],
         cwd=str(project_root),
         capture_output=True,
@@ -279,6 +322,10 @@ def print_container_info(container_configs: List[Dict[str, Any]], credentials_li
     print("Stop containers:")
     for config in container_configs:
         print(f"  docker-compose --env-file deployment/sessions/{config['session_id']}/.env down")
+
+    print("\nRestart containers (if needed):")
+    for config in container_configs:
+        print(f"  docker-compose --env-file deployment/sessions/{config['session_id']}/.env up --build -d")
 
     print("\nCleanup all:")
     print("  python deployment/scripts/cleanup_session_containers.py --all")

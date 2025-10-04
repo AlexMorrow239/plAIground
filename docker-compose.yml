@@ -52,6 +52,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT}
     container_name: ${SESSION_ID}_frontend
     hostname: frontend
     environment:
@@ -62,20 +64,6 @@ services:
 
     ports:
       - "${FRONTEND_PORT}:3000"
-
-    # Security constraints
-    security_opt:
-      - no-new-privileges:true
-
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: "2.0"
-        reservations:
-          memory: 256M
-          cpus: "0.2"
 
     # Health check
     healthcheck:
@@ -105,7 +93,7 @@ services:
     # Automatic restart policy
     restart: unless-stopped
 
-  # Ollama service for LLM capabilities (for future phases)
+  # Ollama service for LLM capabilities
   ollama:
     image: ollama/ollama:latest
     container_name: ${SESSION_ID}_ollama
@@ -117,23 +105,9 @@ services:
     volumes:
       - ollama_models:/root/.ollama
 
-    # Resource limits for LLM
-    deploy:
-      resources:
-        limits:
-          memory: 16G
-          cpus: "4.0"
-        reservations:
-          memory: 4G
-          cpus: "1.0"
-
     # Network isolation
     networks:
       - session_network
-
-    # Only start if needed
-    profiles:
-      - llm-enabled
 
     restart: unless-stopped
 

@@ -24,8 +24,11 @@ class Settings(BaseSettings):
     SESSION_TTL_HOURS: int = int(os.getenv("SESSION_TTL_HOURS", "72"))
     SESSION_WARNING_MINUTES: List[int] = [60, 15, 5]  # Warning times before expiration
 
-    # CORS
-    ALLOWED_ORIGINS: List[str] = ["*"]
+    # CORS - Allow any localhost/127.0.0.1 on any port
+    ALLOWED_ORIGINS: str = os.getenv(
+        "ALLOWED_ORIGINS",
+        r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+    )
 
     # File Upload - Container-aware paths
     MAX_FILE_SIZE_MB: int = int(os.getenv("MAX_FILE_SIZE_MB", 100))
