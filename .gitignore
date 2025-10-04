@@ -68,8 +68,6 @@ uploads/
 
 frontend/next-env.d.ts
 
-deployment/sessions/*
-deployment/sessions/local/*
+deployment/sessions/**/*
 
 !deployment/sessions/.gitkeep
-!deployment/sessions/local/.gitkeep

@@ -1,0 +1,1 @@
+the sessions directory is used to store session metadata for current and previous sessions. Used for container lifecycle management.
