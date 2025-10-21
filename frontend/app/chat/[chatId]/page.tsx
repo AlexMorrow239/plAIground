@@ -27,6 +27,12 @@ function ChatConversation() {
     (c: Conversation) => c.conversation_id === chatId
   );
 
+  // Function to strip thinking tags from message content
+  const stripThinkingTags = (content: string): string => {
+    // Remove <thinking>...</thinking> blocks (including nested content and newlines)
+    return content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [currentConversation?.messages]);
@@ -213,7 +219,11 @@ function ChatConversation() {
                       </div>
                     </div>
                   )}
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+                <p className="whitespace-pre-wrap">
+                  {msg.role === "assistant"
+                    ? stripThinkingTags(msg.content)
+                    : msg.content}
+                </p>
                 <p
                   className={`text-xs mt-2 ${
                     msg.role === "user" ? "text-gray-400" : "text-gray-500"
