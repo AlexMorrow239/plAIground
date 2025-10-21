@@ -8,6 +8,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { useChatStore } from "@/lib/stores/chat-store";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -24,6 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
+  const clearAllPendingMessages = useChatStore((state) => state.clearAllPendingMessages);
 
   const logout = useCallback(() => {
     localStorage.removeItem("access_token");
@@ -32,8 +34,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(false);
     setSessionId(null);
     setExpiresAt(null);
+    // Clear all pending messages from Zustand store on logout
+    clearAllPendingMessages();
     router.push("/login");
-  }, [router]);
+  }, [router, clearAllPendingMessages]);
 
   const checkAuth = useCallback((): boolean => {
     const token = localStorage.getItem("access_token");

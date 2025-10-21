@@ -1,8 +1,10 @@
 "use client";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ThinkingIndicator from "@/components/ThinkingIndicator";
 import { useChatHistory, useSendMessage, useUploadDocument } from "@/lib/hooks";
-import type { Conversation, Message } from "@/types";
+import { useChatStore, usePendingMessages } from "@/lib/stores/chat-store";
+import type { Conversation, Message, PendingMessage } from "@/types";
 import { Paperclip } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -23,6 +25,12 @@ function ChatConversation() {
   const sendMessageMutation = useSendMessage();
   const uploadMutation = useUploadDocument();
 
+  // Zustand store hooks
+  const pendingMessages = usePendingMessages(chatId);
+  const addPendingUserMessage = useChatStore((state) => state.addPendingUserMessage);
+  const addPendingAssistantMessage = useChatStore((state) => state.addPendingAssistantMessage);
+  const clearPendingMessages = useChatStore((state) => state.clearPendingMessages);
+
   const currentConversation = conversations.find(
     (c: Conversation) => c.conversation_id === chatId
   );
@@ -35,7 +43,7 @@ function ChatConversation() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [currentConversation?.messages]);
+  }, [currentConversation?.messages, pendingMessages]);
 
   // Auto-resize textarea when message changes
   useEffect(() => {
@@ -103,11 +111,27 @@ function ChatConversation() {
       return;
 
     let documentIds: string[] = [];
+    let documentContents: Record<string, {
+      filename: string;
+      content: string;
+      page_count?: number;
+      word_count?: number;
+    }> | undefined;
 
     // Upload files first if any are selected
     if (selectedFiles.length > 0) {
       try {
         documentIds = await uploadFiles();
+        // Create document contents for pending message display
+        documentContents = {};
+        selectedFiles.forEach((file, index) => {
+          documentContents![documentIds[index]] = {
+            filename: file.name,
+            content: "",
+            page_count: 0,
+            word_count: 0
+          };
+        });
       } catch (e) {
         console.error("Failed to upload files:", e);
         alert("Failed to upload files. Please try again.");
@@ -116,19 +140,30 @@ function ChatConversation() {
     }
 
     const messageToSend = message || "[Files attached]";
+
+    // Clear input immediately for better UX
     setMessage("");
     setSelectedFiles([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
 
+    // Add pending messages to store (optimistic update)
+    addPendingUserMessage(chatId, messageToSend, documentIds, documentContents);
+    addPendingAssistantMessage(chatId);
+
     sendMessageMutation.mutate(
       { message: messageToSend, conversationId: chatId, documentIds },
       {
         onSuccess: () => {
+          // Clear pending messages when real response arrives
+          clearPendingMessages(chatId);
           scrollToBottom();
         },
         onError: (error: Error) => {
+          // Clear pending messages on error
+          clearPendingMessages(chatId);
+
           // Check if it's an LLM unavailable error
           if (error.message === "LLM service is currently unavailable") {
             toast.error(
@@ -165,93 +200,93 @@ function ChatConversation() {
     );
   }
 
-  const messages = currentConversation.messages || [];
+  // Merge existing messages with pending messages
+  const existingMessages = currentConversation?.messages || [];
+  const allMessages: (Message | PendingMessage)[] = [
+    ...existingMessages,
+    ...pendingMessages
+  ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   return (
     <div className="flex flex-col h-full">
       {/* Messages - with bottom padding to account for fixed input */}
       <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-4">
-        {messages.length === 0 ? (
+        {allMessages.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             No messages yet in this conversation
           </div>
         ) : (
-          messages.map((msg: Message, index: number) => (
-            <div
-              key={index}
-              className={`flex ${
-                msg.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
+          allMessages.map((msg: Message | PendingMessage, index: number) => {
+            const isPending = 'isPending' in msg && msg.isPending;
+            const isThinking = isPending && 'isThinking' in msg && msg.isThinking;
+            const key = isPending && 'id' in msg ? msg.id : `msg-${index}`;
+
+            return (
               <div
-                className={`max-w-2xl px-4 py-3 rounded-lg ${
-                  msg.role === "user"
-                    ? "bg-gray-900 text-white"
-                    : "bg-gray-100 text-gray-900"
-                }`}
+                key={key}
+                className={`flex ${
+                  msg.role === "user" ? "justify-end" : "justify-start"
+                } ${isPending ? "opacity-90" : ""}`}
               >
-                {/* Display attached documents if any */}
-                {msg.document_contents &&
-                  Object.keys(msg.document_contents).length > 0 && (
-                    <div
-                      className={`mb-2 pb-2 border-b ${
-                        msg.role === "user"
-                          ? "border-gray-700"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      <div className="flex flex-wrap gap-1">
-                        {Object.entries(msg.document_contents).map(
-                          ([docId, docData]) => (
-                            <span
-                              key={docId}
-                              className={`inline-flex items-center px-2 py-1 rounded text-xs ${
-                                msg.role === "user"
-                                  ? "bg-gray-800 text-gray-200"
-                                  : "bg-gray-200 text-gray-700"
-                              }`}
-                              title={`${docData.word_count || 0} words`}
-                            >
-                              📎 {docData.filename}
-                            </span>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-                <p className="whitespace-pre-wrap">
-                  {msg.role === "assistant"
-                    ? stripThinkingTags(msg.content)
-                    : msg.content}
-                </p>
-                <p
-                  className={`text-xs mt-2 ${
-                    msg.role === "user" ? "text-gray-400" : "text-gray-500"
+                <div
+                  className={`max-w-2xl px-4 py-3 rounded-lg ${
+                    msg.role === "user"
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-100 text-gray-900"
                   }`}
                 >
-                  {new Date(msg.timestamp).toLocaleTimeString()}
-                </p>
-              </div>
-            </div>
-          ))
-        )}
+                  {/* Display attached documents if any */}
+                  {msg.document_contents &&
+                    Object.keys(msg.document_contents).length > 0 && (
+                      <div
+                        className={`mb-2 pb-2 border-b ${
+                          msg.role === "user"
+                            ? "border-gray-700"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        <div className="flex flex-wrap gap-1">
+                          {Object.entries(msg.document_contents).map(
+                            ([docId, docData]) => (
+                              <span
+                                key={docId}
+                                className={`inline-flex items-center px-2 py-1 rounded text-xs ${
+                                  msg.role === "user"
+                                    ? "bg-gray-800 text-gray-200"
+                                    : "bg-gray-200 text-gray-700"
+                                }`}
+                                title={`${docData.word_count || 0} words`}
+                              >
+                                📎 {docData.filename}
+                              </span>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
 
-        {sendMessageMutation.isPending && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 px-4 py-3 rounded-lg">
-              <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.1s" }}
-                ></div>
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                ></div>
+                  {/* Show thinking indicator or message content */}
+                  {isThinking ? (
+                    <ThinkingIndicator />
+                  ) : (
+                    <p className="whitespace-pre-wrap">
+                      {msg.role === "assistant"
+                        ? stripThinkingTags(msg.content)
+                        : msg.content}
+                    </p>
+                  )}
+
+                  <p
+                    className={`text-xs mt-2 ${
+                      msg.role === "user" ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
+                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  </p>
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })
         )}
 
         <div ref={messagesEndRef} />

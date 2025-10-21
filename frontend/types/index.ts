@@ -29,6 +29,13 @@ export interface Message {
   }>;
 }
 
+// Extended message type for pending/optimistic updates
+export interface PendingMessage extends Message {
+  id: string;
+  isPending: boolean;
+  isThinking?: boolean; // For assistant "thinking" state
+}
+
 export interface Conversation {
   conversation_id: string;
   messages: Message[];
