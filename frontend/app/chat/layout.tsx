@@ -8,7 +8,6 @@ import {
   DatabaseIcon,
   DownloadIcon,
   FileArchiveIcon,
-  HomeIcon,
   LogOutIcon,
   MessageSquareIcon,
 } from "lucide-react";
@@ -16,7 +15,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export default function DashboardLayout({
+export default function ChatLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -61,17 +60,12 @@ export default function DashboardLayout({
 
   const navItems = [
     {
-      href: "/dashboard",
-      label: "Dashboard",
-      icon: <HomeIcon className="w-6 h-6" />,
-    },
-    {
-      href: "/dashboard/chat",
+      href: "/chat/new",
       label: "Chat",
       icon: <MessageSquareIcon className="w-6 h-6" />,
     },
     {
-      href: "/dashboard/chat/history",
+      href: "/chat/history",
       label: "History",
       icon: <ClockIcon className="w-6 h-6" />,
     },

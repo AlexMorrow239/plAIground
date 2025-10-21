@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
   const router = useRouter();
@@ -10,7 +10,7 @@ export default function Home() {
     // Check if user is authenticated
     const token = localStorage.getItem("access_token");
     if (token) {
-      router.push("/dashboard");
+      router.push("/chat/new");
     } else {
       router.push("/login");
     }
@@ -19,7 +19,9 @@ export default function Home() {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Legal AI Research Sandbox</h1>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Legal AI Research Sandbox
+        </h1>
         <p className="mt-2 text-gray-600">Redirecting...</p>
       </div>
     </div>

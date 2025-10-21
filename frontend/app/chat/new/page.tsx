@@ -81,7 +81,7 @@ function NewChatPage() {
       { message: messageToSend, conversationId: undefined, documentIds },
       {
         onSuccess: (data: ChatResponse) => {
-          router.push(`/dashboard/chat/${data.conversation_id}`);
+          router.push(`/chat/${data.conversation_id}`);
         },
         onError: (error: Error) => {
           // Check if it's an LLM unavailable error

@@ -3,9 +3,9 @@
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useChatHistory } from "@/lib/hooks";
 import type { Conversation } from "@/types";
+import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MessageCircle } from "lucide-react";
 
 function ChatHistoryList() {
   const {
@@ -61,7 +61,7 @@ function ChatHistoryList() {
         <MessageCircle className="mx-auto h-12 w-12 text-gray-400" />
         <p className="mt-2 text-sm text-gray-600">No conversations yet</p>
         <Link
-          href="/dashboard/chat"
+          href="/chat/new"
           className="mt-4 inline-block px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
         >
           Start Your First Conversation
@@ -75,7 +75,7 @@ function ChatHistoryList() {
       {conversations.map((conversation: Conversation) => (
         <div
           key={conversation.conversation_id}
-          onClick={() => router.push(`/dashboard/chat/${conversation.conversation_id}`)}
+          onClick={() => router.push(`/chat/${conversation.conversation_id}`)}
           className="p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md hover:border-gray-300 cursor-pointer transition-all"
         >
           <div className="flex justify-between items-start">
@@ -107,9 +107,11 @@ export default function ChatHistoryPage() {
     <ProtectedRoute>
       <div className="max-w-4xl mx-auto p-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Conversation History</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Conversation History
+          </h1>
           <Link
-            href="/dashboard/chat"
+            href="/chat/new"
             className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
           >
             New Conversation

@@ -150,7 +150,7 @@ function ChatConversation() {
       <div className="text-center py-12">
         <p className="text-gray-600 mb-4">Conversation not found</p>
         <Link
-          href="/dashboard/chat/history"
+          href="/chat/history"
           className="text-gray-700 hover:text-gray-900"
         >
           ← Back to History

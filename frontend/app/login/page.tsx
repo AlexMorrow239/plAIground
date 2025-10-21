@@ -17,7 +17,7 @@ export default function LoginPage() {
       { username, password },
       {
         onSuccess: () => {
-          router.push("/dashboard");
+          router.push("/chat/new");
         },
       }
     );
