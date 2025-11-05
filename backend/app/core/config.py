@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # CORS - Allow any localhost/127.0.0.1 on any port
     ALLOWED_ORIGINS: str = os.getenv(
         "ALLOWED_ORIGINS",
-        r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
+        "*"
     )
 
     # File Upload - Container-aware paths

@@ -49,6 +49,46 @@ DOCKER_COMPOSE_FILE = project_root / "docker-compose.yml"
 BASE_SUBNET = "172.20"
 
 
+def detect_container_runtime() -> str:
+    """Detect available container runtime (docker or podman)."""
+    # Prefer podman if available (for cluster environment)
+    for runtime in ['podman', 'docker']:
+        try:
+            result = subprocess.run([runtime, '--version'],
+                                  capture_output=True, text=True)
+            if result.returncode == 0:
+                return runtime
+        except FileNotFoundError:
+            continue
+    raise RuntimeError("Neither Docker nor Podman found. Please install Docker or Podman.")
+
+
+def get_compose_command(runtime: str) -> List[str]:
+    """Get appropriate compose command for runtime."""
+    if runtime == 'podman':
+        # Try podman-compose first, then podman compose
+        for cmd in [['podman-compose'], ['podman', 'compose']]:
+            try:
+                result = subprocess.run(cmd + ['--version'],
+                                      capture_output=True, text=True)
+                if result.returncode == 0:
+                    return cmd
+            except FileNotFoundError:
+                continue
+        raise RuntimeError("podman-compose not found. Please install podman-compose.")
+    else:
+        # Try docker-compose first, then docker compose
+        for cmd in [['docker-compose'], ['docker', 'compose']]:
+            try:
+                result = subprocess.run(cmd + ['--version'],
+                                      capture_output=True, text=True)
+                if result.returncode == 0:
+                    return cmd
+            except FileNotFoundError:
+                continue
+        raise RuntimeError("docker-compose not found. Please install docker-compose.")
+
+
 def generate_password(length: int = 16) -> str:
     """Generate a secure random password."""
     alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
@@ -128,14 +168,14 @@ def find_available_ports(base_port: int, count: int = 2) -> List[int]:
     return available_ports
 
 
-def find_available_subnet() -> str:
-    """Find an available Docker subnet that doesn't conflict with existing networks."""
+def find_available_subnet(runtime: str) -> str:
+    """Find an available container subnet that doesn't conflict with existing networks."""
     import random
 
-    # Get existing Docker networks
+    # Get existing container networks
     try:
         result = subprocess.run(
-            ['docker', 'network', 'ls', '--format', '{{.Name}}'],
+            [runtime, 'network', 'ls', '--format', '{{.Name}}'],
             capture_output=True,
             text=True
         )
@@ -146,7 +186,7 @@ def find_available_subnet() -> str:
         for network in existing_networks:
             if network:
                 inspect_result = subprocess.run(
-                    ['docker', 'network', 'inspect', network, '--format', '{{range .IPAM.Config}}{{.Subnet}}{{end}}'],
+                    [runtime, 'network', 'inspect', network, '--format', '{{range .IPAM.Config}}{{.Subnet}}{{end}}'],
                     capture_output=True,
                     text=True
                 )
@@ -170,10 +210,10 @@ def find_available_subnet() -> str:
     return f"172.{random.randint(100, 200)}.{random.randint(0, 255)}.0/24"
 
 
-def generate_container_config(session: Dict[str, Any], backend_port: int, frontend_port: int) -> Dict[str, Any]:
+def generate_container_config(session: Dict[str, Any], backend_port: int, frontend_port: int, runtime: str) -> Dict[str, Any]:
     """Generate container-specific configuration."""
     session_id = session['session_id']  # Use full session ID
-    subnet = find_available_subnet()  # Find an available subnet
+    subnet = find_available_subnet(runtime)  # Find an available subnet
 
     container_config = {
         'session_id': session_id,
@@ -229,26 +269,26 @@ DEFAULT_MODEL=deepseek-r1:8b
     return env_file_path
 
 
-def create_session_container(container_config: Dict[str, Any], session_config_path: Path) -> bool:
-    """Create and start a Docker container for the session."""
+def create_session_container(container_config: Dict[str, Any], session_config_path: Path, runtime: str, compose_cmd: List[str]) -> bool:
+    """Create and start a container for the session."""
     try:
         # Create environment file
         env_file = create_container_env_file(container_config, session_config_path)
 
-        print(f"  🐳 Starting container for session {container_config['session_id']}")
+        print(f"  🐳 Starting container for session {container_config['session_id']} using {runtime.capitalize()}")
         print(f"     Backend:  http://localhost:{container_config['backend_port']}")
         print(f"     Frontend: http://localhost:{container_config['frontend_port']}")
 
-        # Start the container using docker-compose
+        # Start the container using compose
         # --build flag ensures frontend is built with correct NEXT_PUBLIC_API_URL
-        result = subprocess.run([
-            'docker-compose',
-            '-f', str(DOCKER_COMPOSE_FILE),
-            '--env-file', str(env_file),
-            'up', '--build', '-d'
-        ],
-        cwd=str(project_root),
-        text=True
+        result = subprocess.run(
+            compose_cmd + [
+                '-f', str(DOCKER_COMPOSE_FILE),
+                '--env-file', str(env_file),
+                'up', '--build', '-d'
+            ],
+            cwd=str(project_root),
+            text=True
         )
 
         if result.returncode == 0:
@@ -259,7 +299,7 @@ def create_session_container(container_config: Dict[str, Any], session_config_pa
 
             # Check health
             health_check = subprocess.run([
-                'docker', 'exec', f"{container_config['session_id']}_backend",
+                runtime, 'exec', f"{container_config['session_id']}_backend",
                 'curl', '-f', 'http://localhost:8000/health'
             ], capture_output=True)
 
@@ -297,10 +337,10 @@ def save_container_session_config(session: Dict[str, Any], container_config: Dic
     return session_config_file
 
 
-def print_container_info(container_configs: List[Dict[str, Any]], credentials_list: List[Dict[str, str]]) -> None:
+def print_container_info(container_configs: List[Dict[str, Any]], credentials_list: List[Dict[str, str]], runtime: str, compose_cmd: List[str]) -> None:
     """Print container access information."""
     print("\n" + "="*70)
-    print("CONTAINER SESSION ACCESS")
+    print(f"CONTAINER SESSION ACCESS (using {runtime.upper()})")
     print("="*70)
 
     for i, (config, creds) in enumerate(zip(container_configs, credentials_list), 1):
@@ -315,16 +355,20 @@ def print_container_info(container_configs: List[Dict[str, Any]], credentials_li
     print("\n" + "="*70)
     print("CONTAINER MANAGEMENT")
     print("="*70)
+
+    # Format compose command as string for display
+    compose_cmd_str = ' '.join(compose_cmd)
+
     print("Stop containers:")
     for config in container_configs:
-        print(f"  docker-compose --env-file deployment/sessions/{config['session_id']}/.env down")
+        print(f"  {compose_cmd_str} --env-file deployment/sessions/{config['session_id']}/.env down")
 
     print("\nRestart containers (if needed):")
     for config in container_configs:
-        print(f"  docker-compose --env-file deployment/sessions/{config['session_id']}/.env up --build -d")
+        print(f"  {compose_cmd_str} --env-file deployment/sessions/{config['session_id']}/.env up --build -d")
 
     print("\nCleanup all:")
-    print("  python deployment/scripts/cleanup_session_containers.py --all")
+    print(f"  python deployment/scripts/cleanup_session_containers.py --runtime {runtime} --all")
 
 
 def main():
@@ -343,21 +387,47 @@ def main():
         default=8100,
         help='Base port for container deployment (default: 8100)'
     )
+    parser.add_argument(
+        '--runtime',
+        choices=['docker', 'podman', 'auto'],
+        default='auto',
+        help='Container runtime to use (default: auto-detect)'
+    )
 
     args = parser.parse_args()
 
+    # Determine container runtime
+    if args.runtime == 'auto':
+        try:
+            runtime = detect_container_runtime()
+            print(f"\n✓ Auto-detected container runtime: {runtime}")
+        except RuntimeError as e:
+            print(f"\n❌ Error: {e}")
+            return
+    else:
+        runtime = args.runtime
+        # Verify specified runtime is available
+        try:
+            result = subprocess.run([runtime, '--version'], capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"\n❌ Error: {runtime} command failed")
+                return
+            print(f"\n✓ Using specified container runtime: {runtime}")
+        except FileNotFoundError:
+            print(f"\n❌ Error: {runtime} is not installed or not in PATH")
+            return
+
+    # Get compose command for the runtime
+    try:
+        compose_cmd = get_compose_command(runtime)
+        compose_cmd_str = ' '.join(compose_cmd)
+        print(f"✓ Using compose command: {compose_cmd_str}")
+    except RuntimeError as e:
+        print(f"\n❌ Error: {e}")
+        return
+
     print(f"\nCreating {args.count} isolated container session(s)")
     print(f"Base port: {args.base_port}")
-
-    # Check Docker/Podman availability
-    try:
-        result = subprocess.run(['docker', '--version'], capture_output=True) or subprocess.run(['podman', '--version'], capture_output=True)
-        if result.returncode != 0:
-            print("Docker or Podman not available. Please install Docker or Podman.")
-            return
-    except FileNotFoundError:
-        print("Docker or Podman not found. Please install Docker or Podman.")
-        return
 
     # Create deployment directory if it doesn't exist
     deployment_dir.mkdir(exist_ok=True)
@@ -385,7 +455,7 @@ def main():
         credentials_list.append(credentials)
 
         backend_port, frontend_port = port_pairs[i]
-        container_config = generate_container_config(session, backend_port, frontend_port)
+        container_config = generate_container_config(session, backend_port, frontend_port, runtime)
         container_configs.append(container_config)
 
         print(f"  ✓ Generated session {i+1}/{args.count}: {container_config['session_id']}")
@@ -394,13 +464,13 @@ def main():
         session_config_path = save_container_session_config(session, container_config)
 
         # Create and start container
-        success = create_session_container(container_config, session_config_path)
+        success = create_session_container(container_config, session_config_path, runtime, compose_cmd)
         if not success:
             print(f"  ❌ Failed to create container for session {container_config['session_id']}")
             continue
 
     # Print container access information
-    print_container_info(container_configs, credentials_list)
+    print_container_info(container_configs, credentials_list, runtime, compose_cmd)
 
     print("\n" + "="*70)
     print("CONTAINER SESSIONS ACTIVE")
