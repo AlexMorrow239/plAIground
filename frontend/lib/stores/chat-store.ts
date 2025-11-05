@@ -1,6 +1,5 @@
-import { create } from 'zustand';
-import { shallow } from 'zustand/shallow';
 import { Message } from '@/types';
+import { create } from 'zustand';
 
 export interface PendingMessage extends Message {
   id: string;

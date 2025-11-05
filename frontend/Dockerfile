@@ -1,7 +1,7 @@
 # Legal AI Research Sandbox Frontend Container
 # Multi-stage build for production optimization
 
-FROM oven/bun:1-alpine AS deps
+FROM docker.io/oven/bun:1-alpine AS deps
 
 # Install dependencies only when needed
 WORKDIR /app
@@ -12,7 +12,7 @@ COPY package.json bun.lock ./
 # Install dependencies using bun
 RUN bun install --frozen-lockfile --production
 
-FROM oven/bun:1-alpine AS builder
+FROM docker.io/oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
@@ -34,7 +34,7 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 # Build the application (without turbopack for better container compatibility)
 RUN bun run next build
 
-FROM oven/bun:1-alpine AS runner
+FROM docker.io/oven/bun:1-alpine AS runner
 
 # Install wget for health check
 RUN apk add --no-cache wget

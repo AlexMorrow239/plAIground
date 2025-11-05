@@ -99,7 +99,7 @@ services:
 
   # Ollama service for LLM capabilities
   ollama:
-    image: ollama/ollama:latest
+    image: docker.io/ollama/ollama:latest
     container_name: ${SESSION_ID}_ollama
     hostname: ollama
     environment:

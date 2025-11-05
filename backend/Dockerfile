@@ -1,7 +1,7 @@
 # Legal AI Research Sandbox Backend Container
 # Multi-stage build for security and optimization
 
-FROM python:3.12-slim-bullseye AS base
+FROM docker.io/library/python:3.12-slim-bullseye AS base
 
 # Security: Create non-root user
 RUN groupadd --gid 1000 sandbox && \
